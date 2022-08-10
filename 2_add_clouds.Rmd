@@ -1,0 +1,1489 @@
+---
+title: "filling_the_gap add the clouds"
+author: "Haozhe Wang"
+date: '2022-08-06'
+output: pdf_document
+---
+This is the second code markdown file.This file try to add clouds.
+
+set the path, the path in which file contains the data saved from the first markdown file
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+setwd(path )
+print.all.code=TRUE
+```
+
+
+
+# call the library
+
+```{r}
+library(sp)
+library(rgdal)
+library(raster)
+library(ggplot2)
+library(viridis)
+library(rasterVis)
+library(ambient)
+library(tidyverse)
+memory.limit(240000)
+```
+
+
+
+
+
+
+# add clouds
+we need to add the clouds by ourselves. I choose two region for every group of data set to check the robustness of the model in the future. I used the perlin noise and Knn to generate the clouds. First generate the perlin noise then using knn to generate the clouds. By the way the two region has same width, length and clouds pattern. Finally save the datafram for each figures for convenience.
+
+
+
+
+
+## figure 1
+
+
+```{r}
+
+# figure 1
+
+s1_aoi_1_brick_1 <- brick(paste0(path, "/s1/s1_aoi_1_brick_1.tif"))
+s2_aoi_1_brick_1 <- brick(paste0(path, "/s2/s2_aoi_1_brick_1.tif"))
+
+# cut the brick a little 
+extent <- s1_aoi_1_brick_1@extent
+extent[1:4] <- c( -7.559862337, -7.019256, 37.87009966, 38.30991 )
+s1_aoi_1_brick_1 <- crop(s1_aoi_1_brick_1,extent)
+s2_aoi_1_brick_1 <- crop(s2_aoi_1_brick_1,extent)
+
+col_num_1 <- dim(s2_aoi_1_brick_1)[1]
+row_num_1 <- dim(s2_aoi_1_brick_1)[2]
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_1/3),(row_num_1/3)),0.005,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_1/3),(row_num_1/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==2)
+index2 <- which(cluster[,3]==1)
+
+index_region_1 <- numeric(row_num_1*col_num_1)
+for (i in 1: (row_num_1/3)){
+  
+  index_region_1[(1+(i-1)*col_num_1/3):((i)*col_num_1/3)] <- ((i+300)*col_num_1+1401) : ( (i+300)*col_num_1 +col_num_1/3+1400)
+  
+}
+
+index_region_2 <- numeric(row_num_1*col_num_1)
+for (i in 1: (row_num_1/3)){
+  
+  index_region_2[(1+(i-1)*col_num_1/3):((i)*col_num_1/3)] <- ((i+1000)*col_num_1+401) : ( (i+1000)*col_num_1 +col_num_1/3+400)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_1_brick_1_matrix <- as.data.frame(s1_aoi_1_brick_1,xy=T)
+s1_aoi_1_brick_1_matrix.df1<- s1_aoi_1_brick_1_matrix 
+# reorder the data frame
+s1_aoi_1_brick_1_matrix.df1 <- s1_aoi_1_brick_1_matrix.df1[order(s1_aoi_1_brick_1_matrix.df1$x,s1_aoi_1_brick_1_matrix.df1$y),]
+s1_aoi_1_brick_1_matrix.df1 [union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_1_brick_1_matrix.df2<- data.frame(s1_aoi_1_brick_1_matrix)
+# reorder the data frame
+s1_aoi_1_brick_1_matrix.df2 <- s1_aoi_1_brick_1_matrix.df2[order(s1_aoi_1_brick_1_matrix.df2$x,s1_aoi_1_brick_1_matrix.df2$y),]
+s1_aoi_1_brick_1_matrix.df2 [-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_1_brick_1_matrix <- as.data.frame(s2_aoi_1_brick_1,xy=T)
+s2_aoi_1_brick_1_matrix.df1<- s2_aoi_1_brick_1_matrix 
+# reorder the data frame
+s2_aoi_1_brick_1_matrix.df1<- s2_aoi_1_brick_1_matrix.df1[order(s2_aoi_1_brick_1_matrix.df1$x,s2_aoi_1_brick_1_matrix.df1$y),]
+s2_aoi_1_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_1_brick_1_matrix.df2<- data.frame(s2_aoi_1_brick_1_matrix)
+# reorder the data frame
+s2_aoi_1_brick_1_matrix.df2<- s2_aoi_1_brick_1_matrix.df2[order(s2_aoi_1_brick_1_matrix.df2$x,s2_aoi_1_brick_1_matrix.df2$y),]
+s2_aoi_1_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+# merge the data frame
+
+figure_1_training <- cbind(s1_aoi_1_brick_1_matrix.df1, s2_aoi_1_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_1_training ) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_1_test <- cbind(s1_aoi_1_brick_1_matrix.df2, s2_aoi_1_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_1_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_1_training <- figure_1_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_1_test <- figure_1_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_1_training <- figure_1_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_1_test <- figure_1_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+
+plot(rasterFromXYZ(s1_aoi_1_brick_1_matrix.df1[,1:3]))
+
+# save the data
+
+save(list = c("figure_1_training","figure_1_test","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure1.Rdata"))
+```
+
+
+## figure 2
+
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 2
+s1_aoi_2_brick_1 <- brick(paste0(path, "/s1/s1_aoi_2_brick_1.tif"))
+s2_aoi_2_brick_1 <- brick(paste0(path, "/s2/s2_aoi_2_brick_1.tif"))
+
+# cut the brick a little 
+extent <- s1_aoi_2_brick_1@extent
+extent[1] <- extent[1] + 2*0.0001796631
+s1_aoi_2_brick_1 <- crop(s1_aoi_2_brick_1,extent)
+s2_aoi_2_brick_1 <- crop(s2_aoi_2_brick_1,extent)
+
+
+col_num_2 <- dim(s2_aoi_2_brick_1)[1]
+row_num_2 <- dim(s2_aoi_2_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_2/3),(row_num_2/3)),0.005,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_2/3),(row_num_2/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==1)
+index2 <- which(cluster[,3]==2)
+
+index_region_1 <- numeric(row_num_2*col_num_2)
+for (i in 1: (row_num_2/3)){
+  
+  index_region_1[(1+(i-1)*col_num_2/3):((i)*col_num_2/3)] <- ((i+300)*col_num_2+401) : ( (i+300)*col_num_2 +col_num_2/3+400)
+  
+}
+
+index_region_2 <- numeric(row_num_2*col_num_2)
+for (i in 1: (row_num_2/3)){
+  
+  index_region_2[(1+(i-1)*col_num_2/3):((i)*col_num_2/3)] <- ((i+200)*col_num_2+1401) : ( (i+200)*col_num_2 +col_num_2/3+1400)
+  
+}
+
+
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_2_brick_1_matrix <- as.data.frame(s1_aoi_2_brick_1,xy=T)
+s1_aoi_2_brick_1_matrix.df1<- s1_aoi_2_brick_1_matrix 
+# reorder the data frame
+s1_aoi_2_brick_1_matrix.df1<- s1_aoi_2_brick_1_matrix.df1[order(s1_aoi_2_brick_1_matrix.df1$x,s1_aoi_2_brick_1_matrix.df1$y),]
+s1_aoi_2_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_2_brick_1_matrix.df2<- data.frame(s1_aoi_2_brick_1_matrix)
+# reorder the data frame
+s1_aoi_2_brick_1_matrix.df2<- s1_aoi_2_brick_1_matrix.df2[order(s1_aoi_2_brick_1_matrix.df2$x,s1_aoi_2_brick_1_matrix.df2$y),]
+s1_aoi_2_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_2_brick_1_matrix <- as.data.frame(s2_aoi_2_brick_1,xy=T)
+s2_aoi_2_brick_1_matrix.df1<- s2_aoi_2_brick_1_matrix 
+# reorder the data frame
+s2_aoi_2_brick_1_matrix.df1<- s2_aoi_2_brick_1_matrix.df1[order(s2_aoi_2_brick_1_matrix.df1$x,s2_aoi_2_brick_1_matrix.df1$y),]
+s2_aoi_2_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_2_brick_1_matrix.df2<- data.frame(s2_aoi_2_brick_1_matrix)
+# reorder the data frame
+s2_aoi_2_brick_1_matrix.df2<- s2_aoi_2_brick_1_matrix.df2[order(s2_aoi_2_brick_1_matrix.df2$x,s2_aoi_2_brick_1_matrix.df2$y),]
+s2_aoi_2_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+
+# merge the data frame
+figure_2_training <- cbind(s1_aoi_2_brick_1_matrix.df1, s2_aoi_2_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_2_training) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_2_test <-cbind(s1_aoi_2_brick_1_matrix.df2, s2_aoi_2_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_2_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_2_training <- figure_2_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_2_test <- figure_2_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_2_training <- figure_2_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_2_test <- figure_2_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_2_brick_1_matrix.df1[,1:3]))
+
+# save
+save(list = c("figure_2_training","figure_2_test","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure2.Rdata"))
+```
+
+
+
+
+
+
+## figure 3
+
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 3
+
+s1_aoi_3_brick_1 <- brick(paste0(path, "/s1/s1_aoi_3_brick_1.tif"))
+s2_aoi_3_brick_1 <- brick(paste0(path, "/s2/s2_aoi_3_brick_1.tif"))
+
+# cut the brick a liitle 
+extent <- s1_aoi_3_brick_1@extent
+extent[1] <- extent[1] + 2*0.0001796631
+s1_aoi_3_brick_1 <- crop(s1_aoi_3_brick_1,extent)
+s2_aoi_3_brick_1 <- crop(s2_aoi_3_brick_1,extent)
+
+col_num_3 <- dim(s2_aoi_3_brick_1)[1]
+row_num_3 <- dim(s2_aoi_3_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_3/3),(row_num_3/3)),0.005,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_3/3),(row_num_3/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==1)
+index2 <- which(cluster[,3]==2)
+
+index_region_1 <- numeric(row_num_3*col_num_3)
+for (i in 1: (row_num_3/3)){
+  
+  index_region_1[(1+(i-1)*col_num_3/3):((i)*col_num_3/3)] <- ((i+1200)*col_num_3+801) : ( (i+1200)*col_num_3 +col_num_3/3+800)
+  
+}
+
+index_region_2 <- numeric(row_num_3*col_num_3)
+for (i in 1: (row_num_3/3)){
+  
+  index_region_2[(1+(i-1)*col_num_3/3):((i)*col_num_3/3)] <- ((i+300)*col_num_3+401) : ( (i+300)*col_num_3 +col_num_3/3+400)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_3_brick_1_matrix <- as.data.frame(s1_aoi_3_brick_1,xy=T)
+s1_aoi_3_brick_1_matrix.df1<- s1_aoi_3_brick_1_matrix 
+# reorder the data frame
+s1_aoi_3_brick_1_matrix.df1<- s1_aoi_3_brick_1_matrix.df1[order(s1_aoi_3_brick_1_matrix.df1$x,s1_aoi_3_brick_1_matrix.df1$y),]
+s1_aoi_3_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_3_brick_1_matrix.df2<- data.frame(s1_aoi_3_brick_1_matrix)
+# reorder the data frame
+s1_aoi_3_brick_1_matrix.df2<- s1_aoi_3_brick_1_matrix.df2[order(s1_aoi_3_brick_1_matrix.df2$x,s1_aoi_3_brick_1_matrix.df2$y),]
+s1_aoi_3_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_3_brick_1_matrix <- as.data.frame(s2_aoi_3_brick_1,xy=T)
+s2_aoi_3_brick_1_matrix.df1<- s2_aoi_3_brick_1_matrix 
+# reorder the data frame
+s2_aoi_3_brick_1_matrix.df1<- s2_aoi_3_brick_1_matrix.df1[order(s2_aoi_3_brick_1_matrix.df1$x,s2_aoi_3_brick_1_matrix.df1$y),]
+s2_aoi_3_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_3_brick_1_matrix.df2<- data.frame(s2_aoi_3_brick_1_matrix)
+# reorder the data frame
+s2_aoi_3_brick_1_matrix.df2<- s2_aoi_3_brick_1_matrix.df2[order(s2_aoi_3_brick_1_matrix.df2$x,s2_aoi_3_brick_1_matrix.df2$y),]
+s2_aoi_3_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+
+# merge the data frame
+figure_3_training <- cbind(s1_aoi_3_brick_1_matrix.df1, s2_aoi_3_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_3_training) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_3_test <-cbind(s1_aoi_3_brick_1_matrix.df2, s2_aoi_3_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_3_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_3_training <- figure_3_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_3_test <- figure_3_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_3_training <- figure_3_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_3_test <- figure_3_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_3_brick_1_matrix.df1[,1:3]))
+
+# save
+save(list = c("figure_3_training","figure_3_test","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure3.Rdata"))
+```
+
+
+## figure 4
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 4
+s1_aoi_4_brick_1 <- brick(paste0(path, "/s1/s1_aoi_4_brick_1.tif"))
+s2_aoi_4_brick_1 <- brick(paste0(path, "/s2/s2_aoi_4_brick_1.tif"))
+
+# cut the brick a liitle 
+extent <- s1_aoi_4_brick_1@extent
+extent[1] <- extent[1] + 2*0.0001796631
+extent[3] <- extent[3] + 0.0001796631
+s1_aoi_4_brick_1 <- crop(s1_aoi_4_brick_1,extent)
+s2_aoi_4_brick_1 <- crop(s2_aoi_4_brick_1,extent)
+
+col_num_4 <- dim(s2_aoi_4_brick_1)[1]
+row_num_4 <- dim(s2_aoi_4_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_4/3),(row_num_4/3)),0.007,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_4/3),(row_num_4/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==2)
+index2 <- which(cluster[,3]==1)
+
+index_region_1 <- numeric(row_num_4*col_num_4)
+for (i in 1: (row_num_4/3)){
+  
+  index_region_1[(1+(i-1)*col_num_4/3):((i)*col_num_4/3)] <- ((i+900)*col_num_4+901) : ( (i+900)*col_num_4 +col_num_4/3+900)
+  
+}
+
+index_region_2 <- numeric(row_num_4*col_num_4)
+for (i in 1: (row_num_4/3)){
+  
+  index_region_2[(1+(i-1)*col_num_4/3):((i)*col_num_4/3)] <- ((i+300)*col_num_4+301) : ( (i+300)*col_num_4 +col_num_4/3+300)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_4_brick_1_matrix <- as.data.frame(s1_aoi_4_brick_1,xy=T)
+s1_aoi_4_brick_1_matrix.df1<- s1_aoi_4_brick_1_matrix 
+# reorder the data frame
+s1_aoi_4_brick_1_matrix.df1<- s1_aoi_4_brick_1_matrix.df1[order(s1_aoi_4_brick_1_matrix.df1$x,s1_aoi_4_brick_1_matrix.df1$y),]
+s1_aoi_4_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_4_brick_1_matrix.df2<- data.frame(s1_aoi_4_brick_1_matrix)
+# reorder the data frame
+s1_aoi_4_brick_1_matrix.df2<- s1_aoi_4_brick_1_matrix.df2[order(s1_aoi_4_brick_1_matrix.df2$x,s1_aoi_4_brick_1_matrix.df2$y),]
+s1_aoi_4_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_4_brick_1_matrix <- as.data.frame(s2_aoi_4_brick_1,xy=T)
+s2_aoi_4_brick_1_matrix.df1<- s2_aoi_4_brick_1_matrix 
+# reorder the data frame
+s2_aoi_4_brick_1_matrix.df1<- s2_aoi_4_brick_1_matrix.df1[order(s2_aoi_4_brick_1_matrix.df1$x,s2_aoi_4_brick_1_matrix.df1$y),]
+s2_aoi_4_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_4_brick_1_matrix.df2<- data.frame(s2_aoi_4_brick_1_matrix)
+# reorder the data frame
+s2_aoi_4_brick_1_matrix.df2<- s2_aoi_4_brick_1_matrix.df2[order(s2_aoi_4_brick_1_matrix.df2$x,s2_aoi_4_brick_1_matrix.df2$y),]
+s2_aoi_4_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+
+# merge the data frame
+figure_4_training <- cbind(s1_aoi_4_brick_1_matrix.df1, s2_aoi_4_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_4_training) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_4_test <-cbind(s1_aoi_4_brick_1_matrix.df2, s2_aoi_4_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_4_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_4_training <- figure_4_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_4_test <- figure_4_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_4_training <- figure_4_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_4_test <- figure_4_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_4_brick_1_matrix.df1[,1:3]))
+
+# save
+
+save(list = c("figure_4_training","figure_4_test","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure4.Rdata"))
+```
+
+
+
+## figure 5
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 5
+s1_aoi_5_brick_1_1 <- brick(paste0(path, "/s1/s1_aoi_5_brick_1_1.tif"))
+s1_aoi_5_brick_1_2 <- brick(paste0(path, "/s1/s1_aoi_5_brick_1_2.tif"))
+s2_aoi_5_brick_1 <- brick(paste0(path, "/s2/s2_aoi_5_brick_1.tif"))
+
+# cut the brick a liitle 
+extent <- s2_aoi_5_brick_1@extent
+extent[1] <- extent[1] + 0.0001796631
+s1_aoi_5_brick_1_1 <- crop(s1_aoi_5_brick_1_1,extent)
+s1_aoi_5_brick_1_2 <- crop(s1_aoi_5_brick_1_2,extent)
+s2_aoi_5_brick_1 <- crop(s2_aoi_5_brick_1,extent)
+
+col_num_5 <- dim(s2_aoi_5_brick_1)[1]
+row_num_5 <- dim(s2_aoi_5_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_5/3),(row_num_5/3)),0.0029,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_5/3),(row_num_5/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==1)
+index2 <- which(cluster[,3]==2)
+
+index_region_1 <- numeric(row_num_5*col_num_5)
+for (i in 1: (row_num_5/3)){
+  
+  index_region_1[(1+(i-1)*col_num_5/3):((i)*col_num_5/3)] <- ((i+100)*col_num_5+1601) : ( (i+100)*col_num_5 +col_num_5/3+1600)
+  
+}
+
+index_region_2 <- numeric(row_num_5*col_num_5)
+for (i in 1: (row_num_5/3)){
+  
+  index_region_2[(1+(i-1)*col_num_5/3):((i)*col_num_5/3)] <- ((i+5200)*col_num_5+301) : ( (i+5200)*col_num_5 +col_num_5/3+300)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_5_brick_1_1_matrix <- as.data.frame(s1_aoi_5_brick_1_1,xy=T)
+s1_aoi_5_brick_1_1_matrix.df1<- s1_aoi_5_brick_1_1_matrix 
+# reorder the data frame
+s1_aoi_5_brick_1_1_matrix.df1<- s1_aoi_5_brick_1_1_matrix.df1[order(s1_aoi_5_brick_1_1_matrix.df1$x,s1_aoi_5_brick_1_1_matrix.df1$y),]
+s1_aoi_5_brick_1_1_matrix.df1 [union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_5_brick_1_1_matrix.df2<- data.frame(s1_aoi_5_brick_1_1_matrix)
+# reorder the data frame
+s1_aoi_5_brick_1_1_matrix.df2<- s1_aoi_5_brick_1_1_matrix.df2[order(s1_aoi_5_brick_1_1_matrix.df2$x,s1_aoi_5_brick_1_1_matrix.df2$y),]
+s1_aoi_5_brick_1_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+# change to data frame 
+s1_aoi_5_brick_1_2_matrix <- as.data.frame(s1_aoi_5_brick_1_2,xy=T)
+s1_aoi_5_brick_1_2_matrix.df1<- s1_aoi_5_brick_1_2_matrix 
+# reorder the data frame
+s1_aoi_5_brick_1_2_matrix.df1<- s1_aoi_5_brick_1_2_matrix.df1[order(s1_aoi_5_brick_1_2_matrix.df1$x,s1_aoi_5_brick_1_2_matrix.df1$y),]
+s1_aoi_5_brick_1_2_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_5_brick_1_2_matrix.df2<- data.frame(s1_aoi_5_brick_1_2_matrix)
+# reorder the data frame
+s1_aoi_5_brick_1_2_matrix.df2<- s1_aoi_5_brick_1_2_matrix.df2[order(s1_aoi_5_brick_1_2_matrix.df2$x,s1_aoi_5_brick_1_2_matrix.df2$y),]
+s1_aoi_5_brick_1_2_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_5_brick_1_matrix <- as.data.frame(s2_aoi_5_brick_1,xy=T)
+s2_aoi_5_brick_1_matrix.df1<- s2_aoi_5_brick_1_matrix 
+# reorder the data frame
+s2_aoi_5_brick_1_matrix.df1<- s2_aoi_5_brick_1_matrix.df1[order(s2_aoi_5_brick_1_matrix.df1$x,s2_aoi_5_brick_1_matrix.df1$y),]
+s2_aoi_5_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_5_brick_1_matrix.df2<- data.frame(s2_aoi_5_brick_1_matrix)
+# reorder the data frame
+s2_aoi_5_brick_1_matrix.df2<- s2_aoi_5_brick_1_matrix.df2[order(s2_aoi_5_brick_1_matrix.df2$x,s2_aoi_5_brick_1_matrix.df2$y),]
+s2_aoi_5_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+
+# merge the data frame
+figure_5_training_1 <- cbind(s1_aoi_5_brick_1_1_matrix.df1, s2_aoi_5_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_5_training_1) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_5_test_1 <- cbind(s1_aoi_5_brick_1_1_matrix.df2, s2_aoi_5_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_5_test_1) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_5_training_2 <- cbind(s1_aoi_5_brick_1_2_matrix.df1, s2_aoi_5_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_5_training_2) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_5_test_2 <- cbind(s1_aoi_5_brick_1_2_matrix.df2, s2_aoi_5_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_5_test_2) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+
+
+# add ndvi column
+figure_5_training_1 <- figure_5_training_1 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_5_test_1 <- figure_5_test_1 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+
+figure_5_training_2 <- figure_5_training_2 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_5_test_2 <- figure_5_test_2 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+
+
+
+# add NIR_1 column
+figure_5_training_1 <- figure_5_training_1 %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_5_test_1 <- figure_5_test_1 %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+figure_5_training_2 <- figure_5_training_2 %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_5_test_2 <- figure_5_test_2 %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_5_brick_1_1_matrix.df1[,1:3]))
+# save
+
+save(list = c("figure_5_training_1","figure_5_test_1","figure_5_training_2","figure_5_test_2",
+              "index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"
+              ), file = paste0(path, "/add_cloud_figure5.Rdata"))
+```
+
+## figure 6
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 6
+s1_aoi_6_brick_1 <- brick(paste0(path, "/s1/s1_aoi_6_brick_1.tif"))
+s2_aoi_6_brick_1 <- brick(paste0(path, "/s2/s2_aoi_6_brick_1.tif"))
+
+# cut the brick a liitle 
+extent <- s1_aoi_6_brick_1@extent
+extent[1] <- extent[1] + 0.0001796631
+extent[3] <- extent[3] + 0.0001796631
+s1_aoi_6_brick_1 <- crop(s1_aoi_6_brick_1,extent)
+s2_aoi_6_brick_1 <- crop(s2_aoi_6_brick_1,extent)
+
+col_num_6 <- dim(s2_aoi_6_brick_1)[1]
+row_num_6 <- dim(s2_aoi_6_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_6/3),(row_num_6/3)),0.005,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_6/3),(row_num_6/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==2)
+index2 <- which(cluster[,3]==1)
+
+index_region_1 <- numeric(row_num_6*col_num_6)
+for (i in 1: (row_num_6/3)){
+  
+  index_region_1[(1+(i-1)*col_num_6/3):((i)*col_num_6/3)] <- ((i+300)*col_num_6+401) : ( (i+300)*col_num_6 +col_num_6/3+400)
+  
+}
+
+index_region_2 <- numeric(row_num_6*col_num_6)
+for (i in 1: (row_num_6/3)){
+  
+  index_region_2[(1+(i-1)*col_num_6/3):((i)*col_num_6/3)] <- ((i+4700)*col_num_6+801) : ( (i+4700)*col_num_6 +col_num_6/3+800)
+  
+}
+
+
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_6_brick_1_matrix <- as.data.frame(s1_aoi_6_brick_1,xy=T)
+s1_aoi_6_brick_1_matrix.df1<- s1_aoi_6_brick_1_matrix 
+# reorder the data frame
+s1_aoi_6_brick_1_matrix.df1<- s1_aoi_6_brick_1_matrix.df1[order(s1_aoi_6_brick_1_matrix.df1$x,s1_aoi_6_brick_1_matrix.df1$y),]
+s1_aoi_6_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_6_brick_1_matrix.df2<- data.frame(s1_aoi_6_brick_1_matrix)
+# reorder the data frame
+s1_aoi_6_brick_1_matrix.df2<- s1_aoi_6_brick_1_matrix.df2[order(s1_aoi_6_brick_1_matrix.df2$x,s1_aoi_6_brick_1_matrix.df2$y),]
+s1_aoi_6_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_6_brick_1_matrix <- as.data.frame(s2_aoi_6_brick_1,xy=T)
+s2_aoi_6_brick_1_matrix.df1<- s2_aoi_6_brick_1_matrix 
+# reorder the data frame
+s2_aoi_6_brick_1_matrix.df1<- s2_aoi_6_brick_1_matrix.df1[order(s2_aoi_6_brick_1_matrix.df1$x,s2_aoi_6_brick_1_matrix.df1$y),]
+s2_aoi_6_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_6_brick_1_matrix.df2<- data.frame(s2_aoi_6_brick_1_matrix)
+# reorder the data frame
+s2_aoi_6_brick_1_matrix.df2<- s2_aoi_6_brick_1_matrix.df2[order(s2_aoi_6_brick_1_matrix.df2$x,s2_aoi_6_brick_1_matrix.df2$y),]
+s2_aoi_6_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+
+# merge the data frame
+figure_6_training <- cbind(s1_aoi_6_brick_1_matrix.df1, s2_aoi_6_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_6_training) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_6_test <-cbind(s1_aoi_6_brick_1_matrix.df2, s2_aoi_6_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_6_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_6_training <- figure_6_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_6_test <- figure_6_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_6_training <- figure_6_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_6_test <- figure_6_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_6_brick_1_matrix.df1[,1:3]))
+
+
+# save
+
+save(list = c("figure_6_training","figure_6_test","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure6.Rdata"))
+```
+
+
+
+## figure 7
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 7
+s1_aoi_7_brick_1_1 <- brick(paste0(path, "/s1/s1_aoi_7_brick_1_1.tif"))
+s2_aoi_7_brick_1_1 <- brick(paste0(path, "/s2/s2_aoi_7_brick_1_1.tif"))
+
+# cut the brick a liitle 
+extent <- s1_aoi_7_brick_1_1@extent
+extent[3] <- extent[3] + 0.0001796631
+s1_aoi_7_brick_1_1 <- crop(s1_aoi_7_brick_1_1,extent)
+s2_aoi_7_brick_1_1 <- crop(s2_aoi_7_brick_1_1,extent)
+
+col_num_7 <- dim(s2_aoi_7_brick_1_1)[1]
+row_num_7 <- dim(s2_aoi_7_brick_1_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_7/3),(row_num_7/3)),0.002,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,c((col_num_7/3),(row_num_7/3)))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==1)
+index2 <- which(cluster[,3]==2)
+
+index_region_1 <- numeric(row_num_7*col_num_7)
+for (i in 1: (row_num_7/3)){
+  
+  index_region_1[(1+(i-1)*col_num_7/3):((i)*col_num_7/3)] <- ((i+3700)*col_num_7+1801) : ( (i+3700)*col_num_7 +col_num_7/3+1800)
+  
+}
+
+index_region_2 <- numeric(row_num_7*col_num_7)
+for (i in 1: (row_num_7/3)){
+  
+  index_region_2[(1+(i-1)*col_num_7/3):((i)*col_num_7/3)] <- ((i+100)*col_num_7+2401) : ( (i+100)*col_num_7 +col_num_7/3+2400)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+
+# sentienl 1
+# change to data frame 
+s1_aoi_7_brick_1_1_matrix <- as.data.frame(s1_aoi_7_brick_1_1,xy=T)
+s1_aoi_7_brick_1_1_matrix.df1<- s1_aoi_7_brick_1_1_matrix 
+# reorder the data frame
+s1_aoi_7_brick_1_1_matrix.df1<- s1_aoi_7_brick_1_1_matrix.df1[order(s1_aoi_7_brick_1_1_matrix.df1$x,s1_aoi_7_brick_1_1_matrix.df1$y),]
+s1_aoi_7_brick_1_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_7_brick_1_1_matrix.df2<- data.frame(s1_aoi_7_brick_1_1_matrix)
+# reorder the data frame
+s1_aoi_7_brick_1_1_matrix.df2<- s1_aoi_7_brick_1_1_matrix.df2[order(s1_aoi_7_brick_1_1_matrix.df2$x,s1_aoi_7_brick_1_1_matrix.df2$y),]
+s1_aoi_7_brick_1_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_7_brick_1_1_matrix <- as.data.frame(s2_aoi_7_brick_1_1,xy=T)
+s2_aoi_7_brick_1_1_matrix.df1<- s2_aoi_7_brick_1_1_matrix 
+# reorder the data frame
+s2_aoi_7_brick_1_1_matrix.df1<- s2_aoi_7_brick_1_1_matrix.df1[order(s2_aoi_7_brick_1_1_matrix.df1$x,s2_aoi_7_brick_1_1_matrix.df1$y),]
+s2_aoi_7_brick_1_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_7_brick_1_1_matrix.df2<- data.frame(s2_aoi_7_brick_1_1_matrix)
+# reorder the data frame
+s2_aoi_7_brick_1_1_matrix.df2<- s2_aoi_7_brick_1_1_matrix.df2[order(s2_aoi_7_brick_1_1_matrix.df2$x,s2_aoi_7_brick_1_1_matrix.df2$y),]
+s2_aoi_7_brick_1_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+# merge the data frame
+
+figure_7_training_1 <- cbind(s1_aoi_7_brick_1_1_matrix.df1, s2_aoi_7_brick_1_1_matrix.df1)[,-c(5,6,7)]
+names(figure_7_training_1) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_7_test_1 <- cbind(s1_aoi_7_brick_1_1_matrix.df2, s2_aoi_7_brick_1_1_matrix.df2)[,-c(5,6,7)]
+names(figure_7_test_1) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+
+# add ndvi column
+figure_7_training_1 <- figure_7_training_1 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_7_test_1 <- figure_7_test_1 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_7_training_1 <- figure_7_training_1 %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_7_test_1 <- figure_7_test_1 %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+
+plot(rasterFromXYZ(s1_aoi_7_brick_1_1_matrix.df1[,1:3]))
+# save
+
+save(list = c("figure_7_training_1","figure_7_test_1","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure7_1.Rdata"))
+```
+
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 7
+
+s1_aoi_7_brick_1_2 <- brick(paste0(path, "/s1/s1_aoi_7_brick_1_2.tif"))
+s2_aoi_7_brick_1_2 <- brick(paste0(path, "/s2/s2_aoi_7_brick_1_2.tif"))
+# cut the brick a liitle 
+extent <- s1_aoi_7_brick_1_2@extent
+extent[3] <- extent[3] + 0.0001796631
+s1_aoi_7_brick_1_2 <- crop(s1_aoi_7_brick_1_2,extent)
+s2_aoi_7_brick_1_2 <- crop(s2_aoi_7_brick_1_2,extent)
+
+col_num_7 <- dim(s2_aoi_7_brick_1_2)[1]
+row_num_7 <- dim(s2_aoi_7_brick_1_2)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_7/3),(row_num_7/3)),0.002,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,c((col_num_7/3),(row_num_7/3)))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==1)
+index2 <- which(cluster[,3]==2)
+
+index_region_1 <- numeric(row_num_7*col_num_7)
+for (i in 1: (row_num_7/3)){
+  
+  index_region_1[(1+(i-1)*col_num_7/3):((i)*col_num_7/3)] <- ((i+3700)*col_num_7+1801) : ( (i+3700)*col_num_7 +col_num_7/3+1800)
+  
+}
+
+index_region_2 <- numeric(row_num_7*col_num_7)
+for (i in 1: (row_num_7/3)){
+  
+  index_region_2[(1+(i-1)*col_num_7/3):((i)*col_num_7/3)] <- ((i+100)*col_num_7+2401) : ( (i+100)*col_num_7 +col_num_7/3+2400)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+
+# change to data frame 
+s1_aoi_7_brick_1_2_matrix <- as.data.frame(s1_aoi_7_brick_1_2,xy=T)
+s1_aoi_7_brick_1_2_matrix.df1<- s1_aoi_7_brick_1_2_matrix 
+# reorder the data frame
+s1_aoi_7_brick_1_2_matrix.df1<- s1_aoi_7_brick_1_2_matrix.df1[order(s1_aoi_7_brick_1_2_matrix.df1$x,s1_aoi_7_brick_1_2_matrix.df1$y),]
+s1_aoi_7_brick_1_2_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_7_brick_1_2_matrix.df2<- data.frame(s1_aoi_7_brick_1_2_matrix)
+# reorder the data frame
+s1_aoi_7_brick_1_2_matrix.df2<- s1_aoi_7_brick_1_2_matrix.df2[order(s1_aoi_7_brick_1_2_matrix.df2$x,s1_aoi_7_brick_1_2_matrix.df2$y),]
+s1_aoi_7_brick_1_2_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+
+# sentienl 2
+
+
+# change to data frame 
+s2_aoi_7_brick_1_2_matrix <- as.data.frame(s2_aoi_7_brick_1_2,xy=T)
+s2_aoi_7_brick_1_2_matrix.df1<- s2_aoi_7_brick_1_2_matrix 
+# reorder the data frame
+s2_aoi_7_brick_1_2_matrix.df1<- s2_aoi_7_brick_1_2_matrix.df1[order(s2_aoi_7_brick_1_2_matrix.df1$x,s2_aoi_7_brick_1_2_matrix.df1$y),]
+s2_aoi_7_brick_1_2_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_7_brick_1_2_matrix.df2<- data.frame(s2_aoi_7_brick_1_2_matrix)
+# reorder the data frame
+s2_aoi_7_brick_1_2_matrix.df2<- s2_aoi_7_brick_1_2_matrix.df2[order(s2_aoi_7_brick_1_2_matrix.df2$x,s2_aoi_7_brick_1_2_matrix.df2$y),]
+s2_aoi_7_brick_1_2_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+# merge the data frame
+
+figure_7_training_2 <- cbind(s1_aoi_7_brick_1_2_matrix.df1, s2_aoi_7_brick_1_2_matrix.df1)[,-c(5,6,7)]
+names(figure_7_training_2) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_7_test_2 <- cbind(s1_aoi_7_brick_1_2_matrix.df2, s2_aoi_7_brick_1_2_matrix.df2)[,-c(5,6,7)]
+names(figure_7_test_2) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_7_training_2 <- figure_7_training_2 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_7_test_2 <- figure_7_test_2 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_7_training_2 <- figure_7_training_2 %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_7_test_2 <- figure_7_test_2 %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_7_brick_1_2_matrix.df1[,1:3]))
+# save
+
+save(list = c("figure_7_training_2","figure_7_test_2","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure7_2.Rdata"))
+```
+
+
+
+
+## figure 8
+
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 8
+s1_aoi_8_brick_1 <- brick(paste0(path, "/s1/s1_aoi_8_brick_1.tif"))
+s2_aoi_8_brick_1 <- brick(paste0(path, "/s2/s2_aoi_8_brick_1.tif"))
+
+# cut the brick a little 
+extent <- s1_aoi_8_brick_1@extent
+extent[3] <- extent[3] + 2*0.0001796631
+s1_aoi_8_brick_1 <- crop(s1_aoi_8_brick_1,extent)
+s2_aoi_8_brick_1 <- crop(s2_aoi_8_brick_1,extent)
+
+col_num_8 <- dim(s2_aoi_8_brick_1)[1]
+row_num_8 <- dim(s2_aoi_8_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_8/3),(row_num_8/3)),0.002,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_8/3),(row_num_8/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==1)
+index2 <- which(cluster[,3]==2)
+
+index_region_1 <- numeric(row_num_8*col_num_8)
+for (i in 1: (row_num_8/3)){
+  
+  index_region_1[(1+(i-1)*col_num_8/3):((i)*col_num_8/3)] <- ((i+3400)*col_num_8+1901) : ( (i+3400)*col_num_8 +col_num_8/3+1900)
+  
+}
+
+index_region_2 <- numeric(row_num_8*col_num_8)
+for (i in 1: (row_num_8/3)){
+  
+  index_region_2[(1+(i-1)*col_num_8/3):((i)*col_num_8/3)] <- ((i+300)*col_num_8+3001) : ( (i+300)*col_num_8 +col_num_8/3+3000)
+  
+}
+
+
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_8_brick_1_matrix <- as.data.frame(s1_aoi_8_brick_1,xy=T)
+s1_aoi_8_brick_1_matrix.df1<- s1_aoi_8_brick_1_matrix 
+# reorder the data frame
+s1_aoi_8_brick_1_matrix.df1 <- s1_aoi_8_brick_1_matrix.df1[order(s1_aoi_8_brick_1_matrix.df1$x,s1_aoi_8_brick_1_matrix.df1$y),]
+s1_aoi_8_brick_1_matrix.df1 [union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_8_brick_1_matrix.df2<- data.frame(s1_aoi_8_brick_1_matrix)
+# reorder the data frame
+s1_aoi_8_brick_1_matrix.df2 <- s1_aoi_8_brick_1_matrix.df2[order(s1_aoi_8_brick_1_matrix.df2$x,s1_aoi_8_brick_1_matrix.df2$y),]
+s1_aoi_8_brick_1_matrix.df2 [-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_8_brick_1_matrix <- as.data.frame(s2_aoi_8_brick_1,xy=T)
+s2_aoi_8_brick_1_matrix.df1<- s2_aoi_8_brick_1_matrix 
+# reorder the data frame
+s2_aoi_8_brick_1_matrix.df1<- s2_aoi_8_brick_1_matrix.df1[order(s2_aoi_8_brick_1_matrix.df1$x,s2_aoi_8_brick_1_matrix.df1$y),]
+s2_aoi_8_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_8_brick_1_matrix.df2<- data.frame(s2_aoi_8_brick_1_matrix)
+# reorder the data frame
+s2_aoi_8_brick_1_matrix.df2<- s2_aoi_8_brick_1_matrix.df2[order(s2_aoi_8_brick_1_matrix.df2$x,s2_aoi_8_brick_1_matrix.df2$y),]
+s2_aoi_8_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+# merge the data frame
+
+figure_8_training <- cbind(s1_aoi_8_brick_1_matrix.df1, s2_aoi_8_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_8_training ) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_8_test <- cbind(s1_aoi_8_brick_1_matrix.df2, s2_aoi_8_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_8_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_8_training <- figure_8_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_8_test <- figure_8_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_8_training <- figure_8_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_8_test <- figure_8_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+
+plot(rasterFromXYZ(s1_aoi_8_brick_1_matrix.df1[,1:3]))
+# save
+
+save(list = c("figure_8_training","figure_8_test","index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure8.Rdata"))
+```
+
+
+## figure 9
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 9
+
+s1_aoi_9_brick_1 <- brick(paste0(path, "/s1/s1_aoi_9_brick_1.tif"))
+s2_aoi_9_brick_1 <- brick(paste0(path, "/s2/s2_aoi_9_brick_1.tif"))
+
+# cut the brick a liitle 
+extent <- s1_aoi_9_brick_1@extent
+extent[3] <- extent[3] + 2*0.0001796631
+extent[1] <- extent[1] + 2*0.0001796631
+s1_aoi_9_brick_1 <- crop(s1_aoi_9_brick_1,extent)
+s2_aoi_9_brick_1 <- crop(s2_aoi_9_brick_1,extent)
+
+col_num_9 <- dim(s2_aoi_9_brick_1)[1]
+row_num_9 <- dim(s2_aoi_9_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_9/3),(row_num_9/3)),0.002,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_9/3),(row_num_9/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==2)
+index2 <- which(cluster[,3]==1)
+
+
+
+index_region_1 <- numeric(row_num_9*col_num_9)
+for (i in 1: (row_num_9/3)){
+  
+  index_region_1[(1+(i-1)*col_num_9/3):((i)*col_num_9/3)] <- ((i+4000)*col_num_9+1601) : ( (i+4000)*col_num_9 +col_num_9/3+1600)
+  
+}
+index_region_2 <- numeric(row_num_9*col_num_9)
+for (i in 1: (row_num_9/3)){
+  
+  index_region_2[(1+(i-1)*col_num_9/3):((i)*col_num_9/3)] <- ((i+300)*col_num_9+1801) : ( (i+300)*col_num_9 +col_num_9/3+1800)
+  
+}
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_9_brick_1_matrix <- as.data.frame(s1_aoi_9_brick_1,xy=T)
+s1_aoi_9_brick_1_matrix.df1<- s1_aoi_9_brick_1_matrix 
+# reorder the data frame
+s1_aoi_9_brick_1_matrix.df1 <- s1_aoi_9_brick_1_matrix.df1[order(s1_aoi_9_brick_1_matrix.df1$x,s1_aoi_9_brick_1_matrix.df1$y),]
+s1_aoi_9_brick_1_matrix.df1 [union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_9_brick_1_matrix.df2<- data.frame(s1_aoi_9_brick_1_matrix)
+# reorder the data frame
+s1_aoi_9_brick_1_matrix.df2 <- s1_aoi_9_brick_1_matrix.df2[order(s1_aoi_9_brick_1_matrix.df2$x,s1_aoi_9_brick_1_matrix.df2$y),]
+s1_aoi_9_brick_1_matrix.df2 [-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_9_brick_1_matrix <- as.data.frame(s2_aoi_9_brick_1,xy=T)
+s2_aoi_9_brick_1_matrix.df1<- s2_aoi_9_brick_1_matrix 
+# reorder the data frame
+s2_aoi_9_brick_1_matrix.df1<- s2_aoi_9_brick_1_matrix.df1[order(s2_aoi_9_brick_1_matrix.df1$x,s2_aoi_9_brick_1_matrix.df1$y),]
+s2_aoi_9_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_9_brick_1_matrix.df2<- data.frame(s2_aoi_9_brick_1_matrix)
+# reorder the data frame
+s2_aoi_9_brick_1_matrix.df2<- s2_aoi_9_brick_1_matrix.df2[order(s2_aoi_9_brick_1_matrix.df2$x,s2_aoi_9_brick_1_matrix.df2$y),]
+s2_aoi_9_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+# merge the data frame
+
+figure_9_training <- cbind(s1_aoi_9_brick_1_matrix.df1, s2_aoi_9_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_9_training ) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_9_test <- cbind(s1_aoi_9_brick_1_matrix.df2, s2_aoi_9_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_9_test) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+# add ndvi column
+figure_9_training <- figure_9_training %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_9_test <- figure_9_test %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+# add NIR_1 column
+figure_9_training <- figure_9_training %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_9_test <- figure_9_test %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+
+plot(rasterFromXYZ(s1_aoi_9_brick_1_matrix.df1[,1:3]))
+# save
+# save
+
+save(list = c("figure_9_training","figure_9_test",
+              "index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure9.Rdata"))
+```
+
+
+## figure 10
+```{r}
+rm(list = ls())
+gc()
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+# figure 10
+
+
+
+s1_aoi_10_brick_1_1 <- brick(paste0(path, "/s1/s1_aoi_10_brick_1_1.tif"))
+s1_aoi_10_brick_1_2 <- brick(paste0(path, "/s1/s1_aoi_10_brick_1_2.tif"))
+s2_aoi_10_brick_1 <- brick(paste0(path, "/s2/s2_aoi_10_brick_1.tif"))
+
+
+# cut the brick a liitle 
+extent <- s2_aoi_10_brick_1@extent
+extent[1] <- extent[1] + 2*0.0001796631
+s1_aoi_10_brick_1_1 <- crop(s1_aoi_10_brick_1_1,extent)
+s1_aoi_10_brick_1_2 <- crop(s1_aoi_10_brick_1_2,extent)
+s2_aoi_10_brick_1 <- crop(s2_aoi_10_brick_1,extent)
+
+col_num_10 <- dim(s2_aoi_10_brick_1)[1]
+row_num_10 <- dim(s2_aoi_10_brick_1)[2]
+
+set.seed(1)
+
+# generate noise 
+noise <- noise_perlin(c((col_num_10/3),(row_num_10/3)),0.0029,fractal="billow",octave=3)
+noise <- c(noise) # change to vector
+kmncluster <- kmeans(noise , centers = 2, iter.max = 500,
+                     nstart = 5, algorithm = "Hartigan-Wong") # unsupervised learning
+
+# change back to data frame
+cluster <- matrix(kmncluster$cluster,(col_num_10/3),(row_num_10/3))
+plot(raster(cluster))
+cluster <- as.data.frame(raster(cluster),xy=T)  
+
+
+cluster <- cluster[order(cluster$x,cluster$y),]
+
+# cluster = 1 is not clouds
+index1 <- which(cluster[,3]==2)
+index2 <- which(cluster[,3]==1)
+
+index_region_1 <- numeric(row_num_10*col_num_10)
+for (i in 1: (row_num_10/3)){
+  
+  index_region_1[(1+(i-1)*col_num_10/3):((i)*col_num_10/3)] <- ((i+300)*col_num_10+1401) : ( (i+300)*col_num_10 +col_num_10/3+1400)
+  
+}
+
+index_region_2 <- numeric(row_num_10*col_num_10)
+for (i in 1: (row_num_10/3)){
+  
+  index_region_2[(1+(i-1)*col_num_10/3):((i)*col_num_10/3)] <- ((i+1200)*col_num_10+301) : ( (i+1200)*col_num_10 +col_num_10/3+300)
+  
+}
+
+
+
+index_region_1_1 <- index_region_1[index1]
+index_region_1_2  <- index_region_1[index2]
+
+
+index_region_2_1 <- index_region_2[index1]
+index_region_2_2  <- index_region_2[index2] 
+
+# sentienl 1
+# change to data frame 
+s1_aoi_10_brick_1_1_matrix <- as.data.frame(s1_aoi_10_brick_1_1,xy=T)
+s1_aoi_10_brick_1_1_matrix.df1<- s1_aoi_10_brick_1_1_matrix 
+# reorder the data frame
+s1_aoi_10_brick_1_1_matrix.df1<- s1_aoi_10_brick_1_1_matrix.df1[order(s1_aoi_10_brick_1_1_matrix.df1$x,s1_aoi_10_brick_1_1_matrix.df1$y),]
+s1_aoi_10_brick_1_1_matrix.df1 [union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_10_brick_1_1_matrix.df2<- data.frame(s1_aoi_10_brick_1_1_matrix)
+# reorder the data frame
+s1_aoi_10_brick_1_1_matrix.df2<- s1_aoi_10_brick_1_1_matrix.df2[order(s1_aoi_10_brick_1_1_matrix.df2$x,s1_aoi_10_brick_1_1_matrix.df2$y),]
+s1_aoi_10_brick_1_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+# change to data frame 
+s1_aoi_10_brick_1_2_matrix <- as.data.frame(s1_aoi_10_brick_1_2,xy=T)
+s1_aoi_10_brick_1_2_matrix.df1<- s1_aoi_10_brick_1_2_matrix 
+# reorder the data frame
+s1_aoi_10_brick_1_2_matrix.df1<- s1_aoi_10_brick_1_2_matrix.df1[order(s1_aoi_10_brick_1_2_matrix.df1$x,s1_aoi_10_brick_1_2_matrix.df1$y),]
+s1_aoi_10_brick_1_2_matrix.df1[union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+s1_aoi_10_brick_1_2_matrix.df2<- data.frame(s1_aoi_10_brick_1_2_matrix)
+# reorder the data frame
+s1_aoi_10_brick_1_2_matrix.df2<- s1_aoi_10_brick_1_2_matrix.df2[order(s1_aoi_10_brick_1_2_matrix.df2$x,s1_aoi_10_brick_1_2_matrix.df2$y),]
+s1_aoi_10_brick_1_2_matrix.df2[-union(index_region_1_1,index_region_2_1),3:5] <- NA
+
+
+
+
+
+# sentienl 2
+# change to data frame 
+s2_aoi_10_brick_1_matrix <- as.data.frame(s2_aoi_10_brick_1,xy=T)
+s2_aoi_10_brick_1_matrix.df1<- s2_aoi_10_brick_1_matrix 
+# reorder the data frame
+s2_aoi_10_brick_1_matrix.df1<- s2_aoi_10_brick_1_matrix.df1[order(s2_aoi_10_brick_1_matrix.df1$x,s2_aoi_10_brick_1_matrix.df1$y),]
+s2_aoi_10_brick_1_matrix.df1[union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+s2_aoi_10_brick_1_matrix.df2<- data.frame(s2_aoi_10_brick_1_matrix)
+# reorder the data frame
+s2_aoi_10_brick_1_matrix.df2<- s2_aoi_10_brick_1_matrix.df2[order(s2_aoi_10_brick_1_matrix.df2$x,s2_aoi_10_brick_1_matrix.df2$y),]
+s2_aoi_10_brick_1_matrix.df2[-union(index_region_1_1,index_region_2_1),3:6] <- NA
+
+
+
+# merge the data frame
+figure_10_training_1 <- cbind(s1_aoi_10_brick_1_1_matrix.df1, s2_aoi_10_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_10_training_1) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_10_test_1 <- cbind(s1_aoi_10_brick_1_1_matrix.df2, s2_aoi_10_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_10_test_1) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_10_training_2 <- cbind(s1_aoi_10_brick_1_2_matrix.df1, s2_aoi_10_brick_1_matrix.df1)[,-c(5,6,7)]
+names(figure_10_training_2) <- c("x","y","VV","VH","blue","green","red","NIR")
+figure_10_test_2 <- cbind(s1_aoi_10_brick_1_2_matrix.df2, s2_aoi_10_brick_1_matrix.df2)[,-c(5,6,7)]
+names(figure_10_test_2) <- c("x","y","VV","VH","blue","green","red","NIR")
+
+
+
+# add ndvi column
+figure_10_training_1 <- figure_10_training_1 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_10_test_1 <- figure_10_test_1 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+
+figure_10_training_2 <- figure_10_training_2 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+figure_10_test_2 <- figure_10_test_2 %>% 
+  mutate(NDVI =  (NIR-red) / (red + NIR))
+
+
+
+
+# add NIR_1 column
+figure_10_training_1 <- figure_10_training_1 %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_10_test_1 <- figure_10_test_1 %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+figure_10_training_2 <- figure_10_training_2 %>% 
+  mutate(NIR_1 =   abs(VV)/abs(VH) )
+
+figure_10_test_2 <- figure_10_test_2 %>% 
+  mutate(NIR_1 =  abs(VV)/abs(VH) )
+
+plot(rasterFromXYZ(s1_aoi_10_brick_1_1_matrix.df1[,1:3]))
+# save
+
+save(list = c("figure_10_training_1","figure_10_test_1",
+              "figure_10_training_2","figure_10_test_2",
+              "index_region_1_1","index_region_1_2","index_region_2_1","index_region_2_2"), file = paste0(path, "/add_cloud_figure10.Rdata"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

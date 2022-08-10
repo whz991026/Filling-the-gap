@@ -1,0 +1,794 @@
+---
+title: "filling_the_gap dealing the NA"
+author: "Haozhe Wang"
+date: '2022-08-06'
+output: pdf_document
+---
+
+
+This is the first code markdown file.This file try to deal with the missing values.
+
+
+set the path, the path in which file contains the data
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+setwd(path )
+print.all.code=TRUE
+```
+
+
+ 
+
+
+# call the library
+```{r}
+library(sp)
+library(rgdal)
+library(raster)
+library(ggplot2)
+library(viridis)
+library(rasterVis)
+library(ambient)
+memory.limit(24000)
+```
+
+
+
+
+
+# load the data change to rastor type
+
+First load the data by raster type. Data 1-6 in Sentinel-2 used UTM, but Sentinel-1 using longlat. So I change UTM to longlat. By the way the region of sentinel-2 and sentinel-1 is not exactly same. Therefore, I reprojection s2 to s1 to make sure them cover the same region.
+
+```{r}
+# Load data S1
+s1_aoi_1_brick <- brick(paste0(path, "/s1/s1_aoi_1.tif"))
+s1_aoi_2_brick <- brick(paste0(path, "/s1/s1_aoi_2.tif"))
+s1_aoi_3_brick <- brick(paste0(path, "/s1/s1_aoi_3.tif"))
+s1_aoi_4_brick <- brick(paste0(path, "/s1/s1_aoi_4.tif"))
+s1_aoi_5_brick <- brick(paste0(path, "/s1/s1_aoi_5.tif"))
+s1_aoi_6_brick <- brick(paste0(path, "/s1/s1_aoi_6.tif"))
+s1_aoi_7_brick <- brick(paste0(path, "/s1/s1_aoi_7.tif"))
+s1_aoi_8_brick <- brick(paste0(path, "/s1/s1_aoi_8.tif"))
+s1_aoi_9_brick <- brick(paste0(path, "/s1/s1_aoi_9.tif"))
+s1_aoi_10_brick <- brick(paste0(path, "/s1/s1_aoi_10.tif"))
+
+# Load data S2
+s2_aoi_1_brick <- brick(paste0(path, "/s2/s2_aoi_1.tif"))
+s2_aoi_2_brick <- brick(paste0(path, "/s2/s2_aoi_2.tif"))
+s2_aoi_3_brick <- brick(paste0(path, "/s2/s2_aoi_3.tif"))
+s2_aoi_4_brick <- brick(paste0(path, "/s2/s2_aoi_4.tif"))
+s2_aoi_5_brick <- brick(paste0(path, "/s2/s2_aoi_5.tif"))
+s2_aoi_6_brick <- brick(paste0(path, "/s2/s2_aoi_6.tif"))
+s2_aoi_7_brick <- brick(paste0(path, "/s2/s2_aoi_7.tif"))
+s2_aoi_8_brick <- brick(paste0(path, "/s2/s2_aoi_8.tif"))
+s2_aoi_9_brick <- brick(paste0(path, "/s2/s2_aoi_9.tif"))
+s2_aoi_10_brick <- brick(paste0(path, "/s2/s2_aoi_10.tif"))
+
+
+# figure 1,2,3,4,5 and 6 are using UTM we need to change to longlat
+# The sentinel-2's band are red blue green and NIR. Their values are integer.
+# So I choose ngb method to keep the value are integer.
+s2_aoi_1_brick <- projectRaster(s2_aoi_1_brick, s1_aoi_1_brick, 
+         crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ",method="ngb")
+s2_aoi_2_brick <- projectRaster(s2_aoi_2_brick, s1_aoi_2_brick, 
+         crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ",method="ngb")
+s2_aoi_3_brick <- projectRaster(s2_aoi_3_brick, s1_aoi_3_brick, 
+         crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ",method="ngb")
+s2_aoi_4_brick <- projectRaster(s2_aoi_4_brick, s1_aoi_4_brick, 
+         crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ",method="ngb")
+s2_aoi_5_brick <- projectRaster(s2_aoi_5_brick, s1_aoi_5_brick, 
+         crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ",method="ngb")
+s2_aoi_6_brick <- projectRaster(s2_aoi_6_brick, s1_aoi_6_brick, 
+         crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ",method="ngb")
+
+
+
+names(s2_aoi_1_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_2_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_3_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_4_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_5_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_6_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_7_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_8_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_9_brick) <- c("blue","green","red","NIR")
+names(s2_aoi_10_brick) <- c("blue","green","red","NIR")
+
+```
+
+
+
+
+
+
+
+# set NA (if all four band is 0 for sentinel 2 then chage to NA)
+
+
+In sentinel-2, If all four bands' values are 0 we need to set to NA.
+```{r}
+#if all four band is 0 for sentinel 2 then chage to NA
+
+# the set NA function
+setNA <- function(x){
+  index <- which(rowSums(x[,3:6]) ==0)
+  x[index,3:6]<- NA
+  x
+}
+
+
+
+# figure 1
+
+crs <- s2_aoi_1_brick@crs # load the old crs
+s2_aoi_1_brick_matrix <-as.data.frame(s2_aoi_1_brick , xy = T) # change to dataframe
+s2_aoi_1_brick_matrix <- setNA (s2_aoi_1_brick_matrix) # set NA
+s2_aoi_1_brick <- rasterFromXYZ(s2_aoi_1_brick_matrix,crs=crs) # change back to brick
+
+# figure 2
+
+crs <- s2_aoi_2_brick@crs # load the old crs
+s2_aoi_2_brick_matrix <-as.data.frame(s2_aoi_2_brick , xy = T) # change to dataframe
+s2_aoi_2_brick_matrix <- setNA (s2_aoi_2_brick_matrix) # set NA
+s2_aoi_2_brick <- rasterFromXYZ(s2_aoi_2_brick_matrix,crs=crs)# change back to brick
+
+
+# figure 3
+
+crs <- s2_aoi_3_brick@crs # load the old crs
+s2_aoi_3_brick_matrix <-as.data.frame(s2_aoi_3_brick , xy = T) # change to dataframe
+s2_aoi_3_brick_matrix <- setNA (s2_aoi_3_brick_matrix) # set NA
+s2_aoi_3_brick <- rasterFromXYZ(s2_aoi_3_brick_matrix,crs=crs) # change back to brick
+
+
+# figure 4
+
+crs <- s2_aoi_4_brick@crs # load the old crs
+s2_aoi_4_brick_matrix <-as.data.frame(s2_aoi_4_brick , xy = T) # change to dataframe
+s2_aoi_4_brick_matrix <- setNA (s2_aoi_4_brick_matrix) # set NA
+s2_aoi_4_brick <- rasterFromXYZ(s2_aoi_4_brick_matrix,crs=crs) # change back to brick
+
+
+#
+#I find the figure 5,6,7,8,9 and 10 is too large to using rasterFromXYZ generate the brick
+# so I do it separately 
+# first generate the each layer then combine as a brick
+
+
+# figure 5
+crs <- s2_aoi_5_brick@crs # load the old crs
+s2_aoi_5_brick_matrix <-as.data.frame(s2_aoi_5_brick , xy = T) # change to dataframe
+s2_aoi_5_brick_matrix <- setNA (s2_aoi_5_brick_matrix) # set NA
+s2_aoi_5_brick[[1]] <- rasterFromXYZ(s2_aoi_5_brick_matrix[,1:3],crs=crs) # change back to stack
+s2_aoi_5_brick[[2]] <- rasterFromXYZ(s2_aoi_5_brick_matrix[,c(1,2,4)],crs=crs) # change back to stack
+s2_aoi_5_brick[[3]] <- rasterFromXYZ(s2_aoi_5_brick_matrix[,c(1,2,5)],crs=crs) # change back to stack
+s2_aoi_5_brick[[4]] <- rasterFromXYZ(s2_aoi_5_brick_matrix[,c(1,2,6)],crs=crs) # change back to stack
+s2_aoi_5_brick <- brick(s2_aoi_5_brick) # change back to brick
+
+
+# figure 6
+crs <- s2_aoi_6_brick@crs # load the old crs
+s2_aoi_6_brick_matrix <-as.data.frame(s2_aoi_6_brick , xy = T) # change to dataframe
+s2_aoi_6_brick_matrix <- setNA (s2_aoi_6_brick_matrix) # set NA
+s2_aoi_6_brick[[1]] <- rasterFromXYZ(s2_aoi_6_brick_matrix[,1:3],crs=crs) # change back to brick
+s2_aoi_6_brick[[2]] <- rasterFromXYZ(s2_aoi_6_brick_matrix[,c(1,2,4)],crs=crs) # change back to brick
+s2_aoi_6_brick[[3]] <- rasterFromXYZ(s2_aoi_6_brick_matrix[,c(1,2,5)],crs=crs) # change back to brick
+s2_aoi_6_brick[[4]] <- rasterFromXYZ(s2_aoi_6_brick_matrix[,c(1,2,6)],crs=crs) # change back to brick
+s2_aoi_6_brick <- brick(s2_aoi_6_brick) # change back to brick
+
+
+
+# figure 7
+crs <- s2_aoi_7_brick@crs # load the old crs
+s2_aoi_7_brick_matrix <-as.data.frame(s2_aoi_7_brick , xy = T) # change to dataframe
+s2_aoi_7_brick_matrix <- setNA (s2_aoi_7_brick_matrix) # set NA
+s2_aoi_7_brick[[1]] <- rasterFromXYZ(s2_aoi_7_brick_matrix[,1:3],crs=crs) # change back to brick
+s2_aoi_7_brick[[2]] <- rasterFromXYZ(s2_aoi_7_brick_matrix[,c(1,2,4)],crs=crs) # change back to brick
+s2_aoi_7_brick[[3]] <- rasterFromXYZ(s2_aoi_7_brick_matrix[,c(1,2,5)],crs=crs) # change back to brick
+s2_aoi_7_brick[[4]] <- rasterFromXYZ(s2_aoi_7_brick_matrix[,c(1,2,6)],crs=crs) # change back to brick
+s2_aoi_7_brick <- brick(s2_aoi_7_brick) # change back to brick
+
+# figure 8
+crs <- s2_aoi_8_brick@crs # load the old crs
+s2_aoi_8_brick_matrix <-as.data.frame(s2_aoi_8_brick , xy = T) # change to dataframe
+s2_aoi_8_brick_matrix <- setNA (s2_aoi_8_brick_matrix) # set NA
+s2_aoi_8_brick[[1]] <- rasterFromXYZ(s2_aoi_8_brick_matrix[,1:3],crs=crs) # change back to brick
+s2_aoi_8_brick[[2]] <- rasterFromXYZ(s2_aoi_8_brick_matrix[,c(1,2,4)],crs=crs) # change back to brick
+s2_aoi_8_brick[[3]] <- rasterFromXYZ(s2_aoi_8_brick_matrix[,c(1,2,5)],crs=crs) # change back to brick
+s2_aoi_8_brick[[4]] <- rasterFromXYZ(s2_aoi_8_brick_matrix[,c(1,2,6)],crs=crs) # change back to brick
+s2_aoi_8_brick <- brick(s2_aoi_8_brick) # change back to brick
+
+
+# figure 9 and 10 do not contains all four bands are 0
+
+s2_aoi_9_brick_matrix <-as.data.frame(s2_aoi_9_brick , xy = T) # change to dataframe
+which(rowSums(s2_aoi_9_brick_matrix[,3:6]) ==0)
+which(is.na(s2_aoi_9_brick_matrix))
+
+s2_aoi_10_brick_matrix <-as.data.frame(s2_aoi_10_brick , xy = T) # change to dataframe
+which(rowSums(s2_aoi_10_brick_matrix[,3:6]) ==0)
+which(is.na(s2_aoi_10_brick_matrix))
+
+
+```
+
+# see the pattern of NA
+
+After we set the NA in Sentinel-2, let us see the pattern of the missing values.
+```{r}
+
+# pattern of NA for Sentinel 2
+# figure 1 
+plot(s2_aoi_1_brick_matrix[which(is.na(s2_aoi_1_brick_matrix[,3])),1],
+     s2_aoi_1_brick_matrix[which(is.na(s2_aoi_1_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 1,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_1_brick@extent[1:2],ylim=s2_aoi_1_brick@extent[3:4])
+
+# figure 2 
+plot(s2_aoi_2_brick_matrix[which(is.na(s2_aoi_2_brick_matrix[,3])),1],
+     s2_aoi_2_brick_matrix[which(is.na(s2_aoi_2_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 2,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_2_brick@extent[1:2],ylim=s2_aoi_2_brick@extent[3:4])
+
+# figure 3
+plot(s2_aoi_3_brick_matrix[which(is.na(s2_aoi_3_brick_matrix[,3])),1],
+     s2_aoi_3_brick_matrix[which(is.na(s2_aoi_3_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 3,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_3_brick@extent[1:2],ylim=s2_aoi_3_brick@extent[3:4])
+
+# figure 4 
+plot(s2_aoi_4_brick_matrix[which(is.na(s2_aoi_4_brick_matrix[,3])),1],
+     s2_aoi_4_brick_matrix[which(is.na(s2_aoi_4_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 4,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_4_brick@extent[1:2],ylim=s2_aoi_4_brick@extent[3:4])
+
+# figure 5 
+plot(s2_aoi_5_brick_matrix[which(is.na(s2_aoi_5_brick_matrix[,3])),1],
+     s2_aoi_5_brick_matrix[which(is.na(s2_aoi_5_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 5,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_5_brick@extent[1:2],ylim=s2_aoi_5_brick@extent[3:4])
+
+
+# figure 6 
+plot(s2_aoi_6_brick_matrix[which(is.na(s2_aoi_6_brick_matrix[,3])),1],
+     s2_aoi_6_brick_matrix[which(is.na(s2_aoi_6_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 6,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_6_brick@extent[1:2],ylim=s2_aoi_6_brick@extent[3:4])
+
+# figure 7 
+plot(s2_aoi_7_brick_matrix[which(is.na(s2_aoi_7_brick_matrix[,3])),1],
+     s2_aoi_7_brick_matrix[which(is.na(s2_aoi_7_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 7,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_7_brick@extent[1:2],ylim=s2_aoi_7_brick@extent[3:4])
+
+# figure 8 
+plot(s2_aoi_8_brick_matrix[which(is.na(s2_aoi_8_brick_matrix[,3])),1],
+     s2_aoi_8_brick_matrix[which(is.na(s2_aoi_8_brick_matrix[,3])),2],
+     main="Sentinel 2 figure 8,  NA pattern", xlab="Longitude", ylab="Latitude",
+     xlim=s2_aoi_8_brick@extent[1:2],ylim=s2_aoi_8_brick@extent[3:4])
+
+```
+
+# remove the na 
+
+From above plot, we know data 9, 10 do not contains NA in sentinel-2. Data 7 has missing value in the center of the plot. The others only have missing values in the edges of the figure. So I cut the edge to remove the missing values. However, We also need to check the Sentinel-1 data. There are missing values contain in data 5 7 and 10. The missingness are in the center of the figure, so I imputed the missing values by the mean value of its around pixels. 
+```{r}
+# we only need to drop the pictures' four sides
+# the centre of the pictures do not contain NA
+
+# figure 1
+s2_aoi_1_brick@extent
+# base on the plot we can set x >= -7.56
+# base on the plot we can set x <= -7.019256 
+# base on the plot we can set y >= 37.87 
+# base on the plot we can set y <= 38.31 
+extent <- s2_aoi_1_brick@extent
+extent[1:4] <- c(-7.56,-7.019256,37.87,38.31) # set new extent
+s2_aoi_1_brick <- crop(s2_aoi_1_brick,extent)
+s2_aoi_1_brick_matrix <- as.data.frame(s2_aoi_1_brick, xy=T)
+which(is.na(s2_aoi_1_brick_matrix)) # check whether matrix contains na 
+s1_aoi_1_brick <- crop(s1_aoi_1_brick,extent)
+s1_aoi_1_brick_matrix <- as.data.frame(s1_aoi_1_brick, xy=T)
+which(is.na(s1_aoi_1_brick_matrix)) # check whether matrix contains na 
+
+
+
+# figure 2
+
+s2_aoi_2_brick@extent
+# base on the plot we can set x >= -7.435715 
+# base on the plot we can set x <= -7.07
+# base on the plot we can set y >= 38.37
+# base on the plot we can set y <= 38.80
+
+extent <- s2_aoi_2_brick@extent
+extent[1:4] <- c(-7.435715 ,-7.07,38.37,38.80)# set new extent
+s2_aoi_2_brick <- crop(s2_aoi_2_brick,extent)
+s2_aoi_2_brick_matrix <- as.data.frame(s2_aoi_2_brick, xy=T)
+which(is.na(s2_aoi_2_brick_matrix)) # check whether matrix contains na 
+s1_aoi_2_brick <- crop(s1_aoi_2_brick,extent)
+s1_aoi_2_brick_matrix <- as.data.frame(s1_aoi_2_brick, xy=T)
+which(is.na(s1_aoi_2_brick_matrix)) # check whether matrix contains na 
+
+
+
+
+# figure 3
+s2_aoi_3_brick@extent
+# base on the plot we can set x >= -6.966076 
+# base on the plot we can set x <=  -6.63
+# base on the plot we can set y >= 38.44
+# base on the plot we can set y <= 38.80
+
+
+
+extent <- s2_aoi_3_brick@extent
+extent[1:4] <- c(-6.966076,-6.63,38.44,38.80) # set new extent
+s2_aoi_3_brick <- crop(s2_aoi_3_brick,extent) # crop 
+s2_aoi_3_brick_matrix <- as.data.frame(s2_aoi_3_brick, xy=T)
+which(is.na(s2_aoi_3_brick_matrix)) # check whether matrix contains na 
+s1_aoi_3_brick <- crop(s1_aoi_3_brick,extent)
+s1_aoi_3_brick_matrix <- as.data.frame(s1_aoi_3_brick, xy=T)
+which(is.na(s1_aoi_3_brick_matrix)) # check whether matrix contains na 
+
+
+
+
+# figure 4
+
+s2_aoi_4_brick@extent
+# base on the plot we can set x >= -6.93
+# base on the plot we can set x <= -6.631004 
+# base on the plot we can set y >= 38.10258 
+# base on the plot we can set y <= 38.4046 
+
+extent <- s2_aoi_4_brick@extent
+extent[1:4] <- c(-6.93,-6.631004 ,38.10258 ,38.4046 ) # set new extent
+s2_aoi_4_brick <- crop(s2_aoi_4_brick,extent) # crop 
+s2_aoi_4_brick_matrix <- as.data.frame(s2_aoi_4_brick, xy=T)
+which(is.na(s2_aoi_4_brick_matrix)) # check whether matrix contains na 
+s1_aoi_4_brick <- crop(s1_aoi_4_brick,extent)
+s1_aoi_4_brick_matrix <- as.data.frame(s1_aoi_4_brick, xy=T)
+which(is.na(s1_aoi_4_brick_matrix)) # check whether matrix contains na 
+
+
+
+
+
+# figure 5
+s2_aoi_5_brick@extent
+# base on the plot we can set x >=  -8.95
+# base on the plot we can set x <= -7.44
+# base on the plot we can set y >= 52.2762 
+# base on the plot we can set y <= 52.73
+
+
+extent <- s2_aoi_5_brick@extent
+extent[1:4] <- c(-8.95,-7.44 ,52.2762  ,52.73 ) # set new extent
+s2_aoi_5_brick <- crop(s2_aoi_5_brick,extent) # crop 
+s2_aoi_5_brick_matrix <- as.data.frame(s2_aoi_5_brick, xy=T)
+which(is.na(s2_aoi_5_brick_matrix)) # check whether matrix contains na 
+s1_aoi_5_brick <- crop(s1_aoi_5_brick,extent)
+s1_aoi_5_brick_matrix <- as.data.frame(s1_aoi_5_brick, xy=T)
+which(is.na(s1_aoi_5_brick_matrix)) # check whether matrix contains na 
+
+# there is NA in sentinel 1
+# figure 5 of sentinel 1
+plot(s1_aoi_5_brick_matrix[which(is.na(s1_aoi_5_brick_matrix[,3])),1],
+     s1_aoi_5_brick_matrix[which(is.na(s1_aoi_5_brick_matrix[,3])),2],
+     col = 2, pch = 19,xlim=s2_aoi_5_brick@extent[1:2],ylim=s2_aoi_5_brick@extent[3:4],
+     xlab="Longitude", ylab="Latitude")
+# the missing is occur in particular terrain 
+
+imputed_1 <-function(x){
+  index <- which(is.na(x[,3]))
+  a<-0.0001796631
+  for (i in index){
+    xlim <- x[i,1]
+    ylim <- x[i,2]
+    index_2 <- which(x[,1]<=xlim+2*a&x[,1]>=xlim-2*a&x[,2]<=ylim+2*a&x[,2]>=ylim-2*a)
+    x[i,3]<- mean(x[index_2,3],na.rm=TRUE)
+    x[i,4]<- mean(x[index_2,4],na.rm=TRUE)
+  }
+  x
+}
+
+s1_aoi_5_brick_matrix <- imputed_1(s1_aoi_5_brick_matrix)
+
+# figure 6
+
+s2_aoi_6_brick@extent
+# base on the plot we can set x >= -8.9686 
+# base on the plot we can set x <= -7.386487 
+# base on the plot we can set y >= 52.77602 
+# base on the plot we can set y <= 53.23
+
+
+
+extent <- s2_aoi_6_brick@extent
+extent[1:4] <- c(-8.9686 ,-7.386487  ,52.77602  ,53.23 ) # set new extent
+s2_aoi_6_brick <- crop(s2_aoi_6_brick,extent) # crop 
+s2_aoi_6_brick_matrix <- as.data.frame(s2_aoi_6_brick, xy=T)
+which(is.na(s2_aoi_6_brick_matrix)) # check whether matrix contains na 
+s1_aoi_6_brick <- crop(s1_aoi_6_brick,extent)
+s1_aoi_6_brick_matrix <- as.data.frame(s1_aoi_6_brick, xy=T)
+which(is.na(s1_aoi_6_brick_matrix)) # check whether matrix contains na 
+
+
+
+
+
+# figure 7
+
+s2_aoi_7_brick@extent
+# base on the plot we can set x >= -122.9571 
+# base on the plot we can set x <= -121.74 
+# base on the plot we can set y >= 39.075
+# base on the plot we can set y <= 39.72009 
+
+# there is NA pattern  not the edge anymore
+# figure 7 of sentinel 2
+plot(s2_aoi_7_brick_matrix[which(is.na(s2_aoi_7_brick_matrix[,3])),1],
+     s2_aoi_7_brick_matrix[which(is.na(s2_aoi_7_brick_matrix[,3])),2],
+     col = "blue", pch = 19,xlim=s2_aoi_7_brick@extent[1:2],ylim=s2_aoi_7_brick@extent[3:4],
+      xlab="Longitude", ylab="Latitude")
+s1_aoi_7_brick_matrix <- as.data.frame(s1_aoi_7_brick,xy=T)
+points(s1_aoi_7_brick_matrix[which(is.na(s1_aoi_7_brick_matrix[,3])),1],
+     s1_aoi_7_brick_matrix[which(is.na(s1_aoi_7_brick_matrix[,3])),2],
+     col = "green", pch = 19)
+# the missing is occur in particular terrain 
+
+# there are too many missing values ,so we do not cut the figure
+# we can leave the NA
+# we can impute base on the neighborhood
+
+
+s1_aoi_7_brick_matrix <- imputed_1(s1_aoi_7_brick_matrix)
+
+
+imputed_2 <-function(x){
+  index <- which(is.na(x[,3]))
+  a<-0.0001796631
+  for (i in index){
+    xlim <- x[i,1]
+    ylim <- x[i,2]
+    index_2 <- which(x[,1]<=xlim+2*a&x[,1]>=xlim-2*a&x[,2]<=ylim+2*a&x[,2]>=ylim-2*a)
+    x[i,3]<- mean(x[index_2 ,3],na.rm=TRUE)
+    x[i,4]<- mean(x[index_2 ,4],na.rm=TRUE)
+    x[i,5]<- mean(x[index_2 ,5],na.rm=TRUE)
+    x[i,6]<- mean(x[index_2 ,6],na.rm=TRUE)
+  }
+  x
+}
+
+s2_aoi_7_brick_matrix <- imputed_2(s2_aoi_7_brick_matrix)
+# figure 8
+
+s2_aoi_8_brick@extent
+# base on the plot we can set x >= -65.21
+# base on the plot we can set x <= -64.166 
+# base on the plot we can set y >= -37.101
+# base on the plot we can set y <= -36.16653 
+
+
+
+extent <- s2_aoi_8_brick@extent
+extent[1:4] <- c(-65.21 ,-64.166   ,-37.101  ,-36.16653 ) # set new extent
+s2_aoi_8_brick <- crop(s2_aoi_8_brick,extent) # crop 
+s2_aoi_8_brick_matrix <- as.data.frame(s2_aoi_8_brick, xy=T)
+which(is.na(s2_aoi_8_brick_matrix)) # check whether matrix contains na 
+s1_aoi_8_brick <- crop(s1_aoi_8_brick,extent)
+s1_aoi_8_brick_matrix <- as.data.frame(s1_aoi_8_brick, xy=T)
+which(is.na(s1_aoi_8_brick_matrix)) # check whether matrix contains na 
+
+
+
+
+
+
+
+
+# figure 9 
+s1_aoi_9_brick_matrix <- as.data.frame(s1_aoi_9_brick,xy=T)
+which(is.na(s1_aoi_9_brick_matrix))
+
+
+# figure 10
+s1_aoi_10_brick_matrix <- as.data.frame(s1_aoi_10_brick,xy=T)
+which(is.na(s1_aoi_10_brick_matrix))
+
+
+plot(s1_aoi_10_brick_matrix[which(is.na(s1_aoi_10_brick_matrix[,3])),1],
+     s1_aoi_10_brick_matrix[which(is.na(s1_aoi_10_brick_matrix[,3])),2],
+     col = "blue", pch = 19,xlim=s2_aoi_10_brick@extent[1:2],ylim=s2_aoi_10_brick@extent[3:4], 
+     xlab="Longitude", ylab="Latitude")
+
+s1_aoi_10_brick_matrix <- imputed_1(s1_aoi_10_brick_matrix)
+```
+
+
+# save the new rastor 
+
+
+save the preprocessing raster for convenience and further work.
+```{r}
+# figure 1
+# save the tif
+writeRaster(x = s1_aoi_1_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_1_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_1_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_1_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# figure 2
+# save the tif
+writeRaster(x = s1_aoi_2_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_2_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_2_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_2_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+# figure 3
+# save the tif
+writeRaster(x = s1_aoi_3_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_3_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_3_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_3_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+# figure 4
+# save the tif
+writeRaster(x = s1_aoi_4_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_4_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_4_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_4_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# figure 5
+# save the tif
+writeRaster(x = s1_aoi_5_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_5_brick_1_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+
+# save the tif
+writeRaster(x = s2_aoi_5_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_5_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+
+# figure 6
+# save the tif
+writeRaster(x = s1_aoi_6_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_6_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_6_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_6_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+# figure 7
+# save the tif
+writeRaster(x = s1_aoi_7_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_7_brick_1_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_7_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_7_brick_1_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# figure 8
+# save the tif
+writeRaster(x = s1_aoi_8_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_8_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_8_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_8_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# figure 9
+# save the tif
+writeRaster(x = s1_aoi_9_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_9_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+# save the tif
+writeRaster(x = s2_aoi_9_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_9_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+
+# figure 10
+# save the tif
+writeRaster(x = s1_aoi_10_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_10_brick_1_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+
+
+
+# save the tif
+writeRaster(x = s2_aoi_10_brick,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_10_brick_1.tif"), 	
+            format = "GTiff") 					# save as a tif
+```
+
+
+
+
+
+
+
+
+
+```{r}
+# figure 5
+crs <- s1_aoi_5_brick@crs # load the old crs
+s1_aoi_5_brick_1 <- rasterFromXYZ(s1_aoi_5_brick_matrix[,1:3],crs=crs) # change back to raster
+s1_aoi_5_brick_2 <- rasterFromXYZ(s1_aoi_5_brick_matrix[,c(1,2,4)],crs=crs) # change back to raster
+s1_aoi_5_brick_3 <- rasterFromXYZ(s1_aoi_5_brick_matrix[,c(1,2,5)],crs=crs) # change back to raster
+s1_aoi_5_brick_ <- brick(s1_aoi_5_brick_1,s1_aoi_5_brick_2,s1_aoi_5_brick_3)
+names(s1_aoi_5_brick_) <- c("VV","VH","angle")
+# save the tif
+writeRaster(x = s1_aoi_5_brick_,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_5_brick_1_2.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+# figure 7
+
+crs <- s1_aoi_7_brick@crs # load the old crs
+s1_aoi_7_brick_1 <- rasterFromXYZ(s1_aoi_7_brick_matrix[,1:3],crs=crs) # change back to raster
+s1_aoi_7_brick_2 <- rasterFromXYZ(s1_aoi_7_brick_matrix[,c(1,2,4)],crs=crs) # change back to raster
+s1_aoi_7_brick_3 <- rasterFromXYZ(s1_aoi_7_brick_matrix[,c(1,2,5)],crs=crs) # change back to raster
+s1_aoi_7_brick_ <- brick(s1_aoi_7_brick_1,s1_aoi_7_brick_2,s1_aoi_7_brick_3)
+names(s1_aoi_7_brick_) <- c("VV","VH","angle")
+# save the tif
+writeRaster(x = s1_aoi_7_brick_,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_7_brick_1_2.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+
+crs <- s2_aoi_7_brick@crs # load the old crs
+s2_aoi_7_brick_1 <- rasterFromXYZ(s2_aoi_7_brick_matrix[,1:3],crs=crs) # change back to raster
+s2_aoi_7_brick_2 <- rasterFromXYZ(s2_aoi_7_brick_matrix[,c(1,2,4)],crs=crs) # change back to raster
+s2_aoi_7_brick_3 <- rasterFromXYZ(s2_aoi_7_brick_matrix[,c(1,2,5)],crs=crs) # change back to raster
+s2_aoi_7_brick_4 <- rasterFromXYZ(s2_aoi_7_brick_matrix[,c(1,2,6)],crs=crs) # change back to raster
+s2_aoi_7_brick_ <- brick(s2_aoi_7_brick_1,s2_aoi_7_brick_2,s2_aoi_7_brick_3,s2_aoi_7_brick_4)
+names(s2_aoi_7_brick_) <- c("blue","green","red","NIR")
+
+# save the tif
+writeRaster(x = s2_aoi_7_brick_,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s2/s2_aoi_7_brick_1_2.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+# figure 10
+crs <- s1_aoi_10_brick@crs # load the old crs
+s1_aoi_10_brick_1 <- rasterFromXYZ(s1_aoi_10_brick_matrix[,1:3],crs=crs) # change back to raster
+s1_aoi_10_brick_2 <- rasterFromXYZ(s1_aoi_10_brick_matrix[,c(1,2,4)],crs=crs) # change back to raster
+s1_aoi_10_brick_3 <- rasterFromXYZ(s1_aoi_10_brick_matrix[,c(1,2,5)],crs=crs) # change back to raster
+s1_aoi_10_brick_ <- brick(s1_aoi_10_brick_1,s1_aoi_10_brick_2,s1_aoi_10_brick_3)
+names(s1_aoi_10_brick_) <- c("VV","VH","angle")
+# save the tif
+writeRaster(x = s1_aoi_10_brick_,
+
+            # where your file will go - update with your file path!
+	    
+            filename=paste0(path, "/s1/s1_aoi_10_brick_1_2.tif"), 	
+            format = "GTiff") 					# save as a tif
+
+```
+
+
+
+
+
+
+
+
+
+
+

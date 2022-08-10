@@ -1,0 +1,1963 @@
+---
+title: "predict_NDVI_by_ML"
+author: "Haozhe Wang"
+date: '2022-08-06'
+output: pdf_document
+---
+
+This is the final code markdown file.This file try to predict the NDVI.
+
+set the path, the path in which file contains the datafram saved from the second markdown file
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+path <- "C:/Users/whz/Desktop/res/Edingburgh/disseration/Project 2/data/SDS_Project_2022_FillingTheGap"
+
+print.all.code=TRUE
+```
+
+
+# call the library
+
+
+```{r}
+library(sp)
+library(rgdal)
+library(raster)
+library(ggplot2)
+library(viridis)
+library(rasterVis)
+library(tidyverse)
+library(stats)
+memory.limit(24000)
+```
+
+
+
+
+
+
+
+# predict NDVI base on VV and VH
+
+
+
+we can load figure 1 - 10. If we want predict figure 1 just run figure 1 chunk and all the chunk below region_1.
+
+
+## figure 1
+```{r}
+
+# figure 1
+
+setwd(path)
+
+# Load data
+load("add_cloud_figure1.Rdata")
+figure_training <- figure_1_training
+figure_test <- figure_1_test
+
+# remove the original data set
+ rm(list=c("figure_1_training","figure_1_test"))
+
+
+# the row number and column number
+row_num <- 2448
+col_num <- 3009
+
+
+
+
+```
+
+
+## figure 2
+```{r}
+# figure 2
+
+# load data
+setwd(path)
+load("add_cloud_figure2.Rdata")
+figure_training <- figure_2_training
+figure_test <- figure_2_test
+
+# remove the original data set
+rm(list=c("figure_2_training","figure_2_test"))
+ 
+# the row number and column number
+row_num <- 2394
+col_num <- 2034
+
+```
+
+## figure 3
+```{r}
+
+# figure 3
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure3.Rdata")
+ figure_training <- figure_3_training
+ figure_test <- figure_3_test
+
+# remove the original data set
+rm(list=c("figure_3_training","figure_3_test"))
+
+# the row number and column number
+row_num <- 2004
+
+col_num <- 1869
+```
+
+
+## figure 4
+```{r}
+
+# figure 4
+
+# load data
+
+setwd(path)
+load("add_cloud_figure4.Rdata")
+ figure_training <- figure_4_training
+ figure_test <- figure_4_test
+# remove the original data set
+ rm(list=c("figure_4_training","figure_4_test"))
+
+# the row number and column number
+ row_num <- 1680
+col_num <- 1662
+
+
+```
+
+
+
+## figure 5 with NA
+```{r}
+
+# figure 5 with NA
+
+# load data
+
+setwd(path)
+load("add_cloud_figure5.Rdata")
+ figure_training <- figure_5_training_1
+ figure_test <- figure_5_test_1
+
+
+# remove the original data set
+ rm(list=c("figure_5_training_1","figure_5_test_1","figure_5_training_2","figure_5_test_2"))
+
+# the row number and column number
+row_num <- 2526
+col_num <- 8403
+
+
+```
+
+
+## figure 5 imputed NA
+```{r}
+
+# figure 5 impute NA
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure5.Rdata")
+ figure_training <- figure_5_training_2
+ figure_test <- figure_5_test_2
+
+# remove the original data set
+ rm(list=c("figure_5_training_1","figure_5_test_1","figure_5_training_2","figure_5_test_2"))
+
+
+# the row number and column number
+ row_num <- 2526
+ col_num <- 8403
+
+```
+
+
+
+## figure 6
+```{r}
+
+# figure 6 
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure6.Rdata")
+ figure_training <- figure_6_training
+ figure_test <- figure_6_test
+
+
+# remove the original data set
+ rm(list=c("figure_6_training","figure_6_test"))
+
+
+# the row number and column number
+ row_num <- 2526
+ col_num <- 8805
+
+```
+
+
+## figure 7 with NA
+```{r}
+
+# figure 7 with NA
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure7_1.Rdata")
+ figure_training <- figure_7_training_1
+ figure_test <- figure_7_test_1
+
+# remove the original data set
+ rm(list=c("figure_7_training_1","figure_7_test_1"))
+
+
+# the row number and column number
+ row_num <- 5328 
+ col_num <- 6789
+```
+
+
+## figure 7 imputed NA
+```{r}
+
+# figure 7 impute NA
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure7_2.Rdata")
+ figure_training <- figure_7_training_2
+ figure_test <- figure_7_test_2
+
+# remove the original data set
+ rm(list=c("figure_7_training_2","figure_7_test_2"))
+
+
+# the row number and column number
+ row_num <- 5328 
+ col_num <- 6789
+```
+
+
+## figure 8
+```{r}
+
+
+# figure 8
+
+# load data
+
+setwd(path)
+ load("add_cloud_figure8.Rdata")
+ figure_training <- figure_8_training
+ figure_test <- figure_8_test
+
+# remove the original data set
+rm(list=c("figure_8_training","figure_8_test"))
+
+
+# the row number and column number
+ row_num <- 5199
+ col_num <- 5811
+```
+
+## figure 9
+```{r}
+
+# figure 9
+
+# load data
+
+
+ setwd(path)
+load("add_cloud_figure9.Rdata")
+ figure_training <- figure_9_training
+ figure_test <- figure_9_test
+
+ #remove the original data set
+ rm(list=c("figure_9_training","figure_9_test"))
+
+
+# the row number and column number
+row_num <- 5229
+ col_num <- 6267
+```
+
+
+## figure 10 with NA
+```{r}
+
+# figure 10
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure10.Rdata")
+ figure_training <- figure_10_training_1
+ figure_test <- figure_10_test_1
+
+# remove the original data set
+rm(list=c("figure_10_training_1","figure_10_test_1","figure_10_training_2","figure_10_test_2"))
+
+
+# the row number and column number
+row_num <- 3054
+col_num <- 2889
+```
+
+
+
+
+
+
+
+
+## figure 10 imputed NA
+```{r}
+
+# figure 10
+
+# load data
+
+ setwd(path)
+load("add_cloud_figure10.Rdata")
+ figure_training <- figure_10_training_2
+ figure_test <- figure_10_test_2
+
+# remove the original data set
+ rm(list=c("figure_10_training_1","figure_10_test_1","figure_10_training_2","figure_10_test_2"))
+
+# the row number and column number
+ row_num <- 3054
+ col_num <- 2889
+```
+
+
+
+
+
+### region_1
+
+
+
+
+
+
+
+
+#### normalised 
+
+normalise the VV and VH
+```{r}
+
+# only remain the VV, VH ,x,y and NDVI
+figure_training <- figure_training[,c("x","y","VV","VH","NDVI")]
+figure_test <- figure_test[,c("x","y","VV","VH","NDVI")]
+
+# this is the region index
+index_region_1 <- sort(c(index_region_1_1,index_region_1_2))
+
+
+# we need add 4 sides of the region to make all pixels of the region have next to pixels.
+
+# add two row
+row_begin <- index_region_1 [((0:(col_num/3-1))*(row_num/3)+1)]-1
+row_end <- index_region_1 [(1:(col_num/3))*(row_num/3)]+1
+index_region_1 <-  sort(c(index_region_1,row_begin,row_end))
+
+# add two column
+col_begin <- index_region_1 [1:(row_num/3+2)] -row_num
+col_end <-index_region_1 [((row_num/3+2)*(col_num/3-1)+1):((row_num/3+2)*(col_num/3))] + row_num
+index_region_1 <-  sort(c(index_region_1,col_begin,col_end))
+
+# the whole data of the figure
+figure_combine_set <- figure_training[-c(index_region_1_1,index_region_2_1),]
+figure_combine_set<- rbind(figure_combine_set,figure_test[c(index_region_1_1,index_region_2_1),])
+figure_combine_set<-  figure_combine_set[order(figure_combine_set$x,figure_combine_set$y),]
+
+# the whole data of region 1
+figure_combine_set_1 <- figure_combine_set[index_region_1,]
+plot(rasterFromXYZ(figure_combine_set_1[,c("x","y","NDVI")]))
+plot(figure_combine_set[c(col_begin,col_end,row_begin,row_end),1],
+     figure_combine_set[c(col_begin,col_end,row_begin,row_end),2])
+
+rm(list=c("figure_training","figure_test"))
+
+# combine the training and test for add column
+
+index_training <- which(index_region_1%in%index_region_1_2)
+
+index_test <- which(index_region_1%in%index_region_1_1)
+
+
+
+# function to normalised the data
+normalised <- function(x,max,min){
+  x <- (x -min)/(max-min)
+  x
+}
+
+# function to back the normalised the data
+backed <- function(x,max,min){
+  x <- x*(max-min)+min
+  x
+}
+
+
+# normalize VV
+max_VV_1 <- max(figure_combine_set_1$VV[index_training],na.rm=TRUE)
+
+min_VV_1 <- min(figure_combine_set_1$VV[index_training],na.rm=TRUE)
+
+
+figure_combine_set_1$VV <- normalised(figure_combine_set_1$VV,max_VV_1,min_VV_1)
+
+# normalize VH
+
+max_VH_1 <- max(figure_combine_set_1$VH[index_training],na.rm=TRUE)
+
+min_VH_1 <- min (figure_combine_set_1$VH[index_training],na.rm=TRUE)
+
+
+figure_combine_set_1$VH <- normalised(figure_combine_set_1$VH,max_VH_1,min_VH_1)
+
+
+
+```
+
+
+
+#### Data Preprocessing
+
+I add 16 columns on both training data and test data. The add columns are the value of adjacent pixels (3x3).
+```{r}
+
+
+row_num <- row_num/3 +2
+col_num <- col_num/3 +2
+#  VV
+
+
+# this is right pixels
+figure_combine_set_1$VV_6 <- c(figure_combine_set_1$VV [(row_num+1):(row_num*col_num)],rep(NA,row_num))    
+
+# this is left pixels
+figure_combine_set_1$VV_4 <- c(rep(NA,row_num),figure_combine_set_1$VV [1:((row_num*col_num)-row_num)])  
+
+# this is up pixels
+
+figure_combine_set_1$VV_2 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_1$VV_2 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_1$VV [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is bottom pixels
+
+figure_combine_set_1$VV_8 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_1$VV_8 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_1$VV [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+
+# this is up left pixels
+
+figure_combine_set_1$VV_1 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VV_1 [(1+(i)*row_num):((i+1)*row_num -1)]  <-  figure_combine_set_1$VV [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is up right pixels
+
+figure_combine_set_1$VV_3 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VV_3 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_1$VV [(2+(i)*row_num): ((i+1)*row_num)]
+}
+
+# this is bottom left pixels
+
+figure_combine_set_1$VV_7 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VV_7 [(2+(i)*row_num): ((i+1)*row_num)] <-  figure_combine_set_1$VV [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+# this is bottom right pixels
+
+figure_combine_set_1$VV_9 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VV_9 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_1$VV [(1+(i)*row_num):((i+1)*row_num -1)] 
+}
+
+
+
+# VH
+
+
+# this is right pixels
+figure_combine_set_1$VH_6 <- c(figure_combine_set_1$VH [(row_num+1):(row_num*col_num)],rep(NA,row_num))    
+
+# this is left pixels
+figure_combine_set_1$VH_4 <- c(rep(NA,row_num),figure_combine_set_1$VH [1:((row_num*col_num)-row_num)])  
+
+# this is up pixels
+
+figure_combine_set_1$VH_2 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_1$VH_2 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_1$VH [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is bottom pixels
+
+figure_combine_set_1$VH_8 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_1$VH_8 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_1$VH [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+
+# this is up left pixels
+
+figure_combine_set_1$VH_1 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VH_1 [(1+(i)*row_num):((i+1)*row_num -1)]  <-  figure_combine_set_1$VH [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is up right pixels
+
+figure_combine_set_1$VH_3 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VH_3 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_1$VH [(2+(i)*row_num): ((i+1)*row_num)]
+}
+
+# this is bottom left pixels
+
+figure_combine_set_1$VH_7 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VH_7 [(2+(i)*row_num): ((i+1)*row_num)] <-  figure_combine_set_1$VH [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+# this is bottom right pixels
+
+figure_combine_set_1$VH_9 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_1$VH_9 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_1$VH [(1+(i)*row_num):((i+1)*row_num -1)] 
+}
+
+
+figure_training <- figure_combine_set_1[index_training,]
+
+figure_test <- figure_combine_set_1[index_test,]
+
+#rm(list =figure_combine_set )
+
+```
+
+
+#### visualization 
+
+the scatter plots (NDVI vs VV, NDVI vs VH, and VH vs VV) and the histograms of VV, VH and NDVI in the training set 
+```{r}
+plot(figure_training$VV,figure_training$NDVI, xlab= "VV",ylab="NDVI",
+    main= "NDVI aginst VV for figure 1")
+plot(figure_training$VH,figure_training$NDVI, xlab= "VH",ylab="NDVI",
+    main= "NDVI aginst VH for figure 1")
+plot(figure_training$VV,figure_training$VH, xlab= "VV",ylab="VH",
+    main= "VH aginst VV for figure 1")
+
+
+hist(figure_training$VV)
+hist(figure_training$VH)
+hist(figure_training$NDVI)
+
+```
+
+
+
+
+#### evaluation function
+
+there are 6 types score function to measure the model.
+```{r}
+# square root of mean square error
+MSE <- function(predict,true){
+ mean((predict - true)^2)
+} 
+
+# R square
+R2 <- function(predict,true){
+ 1-sum((predict-true)^2)/sum((true-mean(true))^2)
+} 
+
+
+# DS score
+DS <- function(predict,true){
+  mean(((true - predict)/(sd(predict-true)))^2 + 2* log(sd(predict-true)))
+} 
+
+
+# RPD Residual prediction deviation
+library(chillR)
+
+# KGE Kling-Gupta efficiency
+library(hydroGOF)
+
+# SSIM  structural similarity index
+library(SPUTNIK)
+
+
+
+
+
+```
+
+
+
+#### choose 10000 for training
+
+choose 10000 pixels as training set because of the limitation of the computation. See the histgram of the training set and the histograms of the tes set
+```{r}
+
+set.seed(1)
+# sample 10000 for easy compute
+index_1 <- sample(1:dim(drop_na(figure_training[,c("VV","VH","NDVI")]))[1],1e4)
+
+# original
+
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[,c("VV")],main= "histogram of VV in the original data set",xlab="VV")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,c("VV")],main= "histogram of VV in random choose 10000 data set",xlab="VV")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[,c("VH")],main= "histogram of VH in the original data set",xlab="VH")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,c("VH")],main= "histogram of VH in random choose 10000 data set",xlab="VH")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[,c("NDVI")],main= "histogram of NDVI in the original data set",xlab="NDVI")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,c("NDVI")],main= "histogram of NDVI in random choose 10000 data set",xlab="NDVI")
+
+set.seed(1)
+
+# CREATE THE VECTOR indicate the 18 colums and NDVI
+column_18 <-c("NDVI","VV","VH","VV_1","VH_1","VV_2","VH_2","VV_3","VH_3","VV_4","VH_4",
+              "VV_6","VH_6","VV_7","VH_7", "VV_8","VH_8","VV_9","VH_9")
+# sample 100000 for easy compute
+index_2 <- sample(1:dim(drop_na(figure_training[,column_18]))[1],1e4)
+
+hist(drop_na(figure_training[,column_18])[,c("VV")],main= "histogram of VV in the original data set",xlab="VV")
+hist(drop_na(figure_training[,column_18])[index_1,c("VV")],main= "histogram of VV in random choose 10000 data set",xlab="VV")
+hist(drop_na(figure_training[,column_18])[,c("VH")],main= "histogram of VH in the original data set",xlab="VH")
+hist(drop_na(figure_training[,column_18])[index_1,c("VH")],main= "histogram of VH in random choose 10000 data set",xlab="VH")
+hist(drop_na(figure_training[,column_18])[,c("NDVI")],main= "histogram of NDVI in the original data set",xlab="NDVI")
+hist(drop_na(figure_training[,column_18])[index_1,c("NDVI")],main= "histogram of NDVI in random choose 10000 data set",xlab="NDVI")
+
+
+
+ plot(rasterFromXYZ(drop_na(figure_test[,c("x","y",column_18)])[index_2,1:3]),main="training data in raster")
+
+```
+
+
+
+
+
+
+#### linear regression
+
+It contains 2 types models. one type is pixels (sentinel 1) to pixels (sentinel 2), the other is 9 pixels (sentinel 1) to 1 pixels (sentinel 2). 
+
+```{r}
+library(caret)
+ctrl <- trainControl(
+  method = "cv",
+  number = 10,
+)
+
+
+set.seed(1)
+# linear regression only VV and VH
+
+#set the model
+figure_ndvi_lm_1 <- train(
+  NDVI~VV+VH,
+  data =drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,],
+  method = 'lm',trControl = ctrl)
+figure_ndvi_lm_1
+
+
+# predict for the test set
+predict_figure_lm_1 <- predict(figure_ndvi_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")]))
+
+# the 5 types score in test set
+MSE_vector <- c()
+R2_vector <-  c()
+DS_vector <-  c()
+RPD_vector <- c()
+KGE_vector <- c()
+SSIM_vector <-c()
+  
+MSE_figure_lm_1 <- MSE (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+R2_figure_lm_1 <- R2 (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+DS_figure_lm_1 <- DS (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+RPD_figure_lm_1 <- RPD (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+KGE_figure_lm_1 <- KGE (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+SSIM_figure_lm_1 <- SSIM (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+
+MSE_vector[1] <- MSE_figure_lm_1 
+R2_vector[1] <- R2_figure_lm_1 
+DS_vector[1] <- DS_figure_lm_1 
+RPD_vector[1] <- RPD_figure_lm_1 
+KGE_vector[1] <- KGE_figure_lm_1 
+SSIM_vector[1] <- SSIM_figure_lm_1 
+
+
+cat("\n \n \nMSE on the test set for figure_ndvi_lm_1",MSE_figure_lm_1)
+cat("\n R2 on the test set for figure_ndvi_lm_1",R2_figure_lm_1)
+cat("\n DS on the test set for figure_ndvi_lm_1",DS_figure_lm_1)
+cat("\n RPD on the test set for figure_ndvi_lm_1",RPD_figure_lm_1)
+cat("\n KGE on the test set for figure_ndvi_lm_1",KGE_figure_lm_1)
+cat("\n SSIM on the test set for figure_ndvi_lm_1",SSIM_figure_lm_1,"\n \n \n")
+
+
+
+
+# linear regression using 9 pixels
+
+
+
+
+# linear regression only VV, VH and its around pixels' VV and VH
+set.seed(1)
+
+# set the model
+figure_ndvi_lm_2 <- train(
+  NDVI~VV+VH+VV_1+VH_1+VV_2+VH_2+VV_3+VH_3+VV_4+VH_4+VV_6+VH_6+VV_7+VH_7+VV_8+VH_8+VV_9+VH_9,
+  data =drop_na(figure_training[,column_18])[index_2,],
+  method = 'lm')
+figure_ndvi_lm_2
+
+# predict at the test model
+
+predict_figure_lm_2 <- predict(figure_ndvi_lm_2,drop_na(figure_test[,column_18]))
+MSE_figure_lm_2 <- MSE (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+R2_figure_lm_2 <- R2 (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+DS_figure_lm_2 <- DS (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+RPD_figure_lm_2 <- RPD (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+KGE_figure_lm_2 <- KGE (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+SSIM_figure_lm_2 <- SSIM (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+
+MSE_vector[2] <- MSE_figure_lm_2 
+R2_vector[2] <- R2_figure_lm_2 
+DS_vector[2] <- DS_figure_lm_2 
+RPD_vector[2] <- RPD_figure_lm_2 
+KGE_vector[2] <- KGE_figure_lm_2 
+SSIM_vector[2] <- SSIM_figure_lm_2 
+
+
+cat("\n \n \nMSE on the test set for figure_ndvi_lm_2",MSE_figure_lm_2)
+cat("\n R2 on the test set for figure_ndvi_lm_2",R2_figure_lm_2)
+cat("\n DS on the test set for figure_ndvi_lm_2",DS_figure_lm_2)
+cat("\n RPD on the test set for figure_ndvi_lm_2",RPD_figure_lm_2)
+cat("\n KGE on the test set for figure_ndvi_lm_2",KGE_figure_lm_2)
+cat("\n SSIM on the test set for figure_ndvi_lm_2",SSIM_figure_lm_2,"\n \n \n")
+
+
+
+
+
+
+```
+
+
+#### random forest
+It contains 2 models. One is pixels (sentinel 1) to pixels (sentinel 2), the other is 9 pixels (sentinel 1) to 1 pixels (sentinel 2).
+
+```{r}
+library(randomForest)
+
+
+set.seed(1)
+# random forest only VV and VH
+
+#set the model
+figure_ndvi_rf_1 <- randomForest(
+  NDVI~VV+VH,
+  data =drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,])
+figure_ndvi_rf_1
+
+
+
+
+# predict for the test set
+predict_figure_rf_1 <- predict(figure_ndvi_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")]))
+# the 5 types score in test set
+MSE_figure_rf_1 <- MSE (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+R2_figure_rf_1 <- R2 (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+DS_figure_rf_1 <- DS (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+RPD_figure_rf_1 <- RPD (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+KGE_figure_rf_1 <- KGE (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+SSIM_figure_rf_1 <- SSIM (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+
+MSE_vector[3] <- MSE_figure_rf_1
+R2_vector[3] <- R2_figure_rf_1 
+DS_vector[3] <- DS_figure_rf_1 
+RPD_vector[3] <- RPD_figure_rf_1
+KGE_vector[3] <- KGE_figure_rf_1
+SSIM_vector[3] <- SSIM_figure_rf_1
+
+cat("\n \n \nMSE on the test set for figure_ndvi_rf_1",MSE_figure_rf_1)
+cat("\n R2 on the test set for figure_ndvi_rf_1",R2_figure_rf_1)
+cat("\n DS on the test set for figure_ndvi_rf_1",DS_figure_rf_1)
+cat("\n RPD on the test set for figure_ndvi_rf_1",RPD_figure_rf_1)
+cat("\n KGE on the test set for figure_ndvi_rf_1",KGE_figure_rf_1)
+cat("\n SSIM on the test set for figure_ndvi_rf_1",SSIM_figure_rf_1,"\n \n \n")
+
+
+
+
+
+
+
+
+
+
+# random forest using 9 pixels
+
+
+# random forest only VV, VH  and its around pixels' VV and VH
+set.seed(1)
+
+# set the model
+figure_ndvi_rf_2 <- randomForest(
+  NDVI~VV+VH+VV_1+VH_1+VV_2+VH_2+VV_3+VH_3+VV_4+VH_4+VV_6+VH_6+VV_7+VH_7+VV_8+VH_8+VV_9+VH_9,
+  data =drop_na(figure_training[,column_18])[index_2,])
+figure_ndvi_rf_2
+
+# predict at the test model
+
+predict_figure_rf_2 <- predict(figure_ndvi_rf_2,drop_na(figure_test[,column_18]))
+MSE_figure_rf_2 <- MSE (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+R2_figure_rf_2 <- R2 (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+DS_figure_rf_2 <- DS (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+RPD_figure_rf_2 <- RPD (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+KGE_figure_rf_2 <- KGE (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+SSIM_figure_rf_2 <- SSIM (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+
+MSE_vector[4] <- MSE_figure_rf_2
+R2_vector[4] <- R2_figure_rf_2 
+DS_vector[4] <- DS_figure_rf_2 
+RPD_vector[4] <- RPD_figure_rf_2
+KGE_vector[4] <- KGE_figure_rf_2
+SSIM_vector[4] <- SSIM_figure_rf_2
+
+cat("\n \n \nMSE on the test set for figure_ndvi_rf_2",MSE_figure_rf_2)
+cat("\n R2 on the test set for figure_ndvi_rf_2",R2_figure_rf_2)
+cat("\n DS on the test set for figure_ndvi_rf_2",DS_figure_rf_2)
+cat("\n RPD on the test set for figure_ndvi_rf_2",RPD_figure_rf_2)
+cat("\n KGE on the test set for figure_ndvi_rf_2",KGE_figure_rf_2)
+cat("\n SSIM on the test set for figure_ndvi_rf_2",SSIM_figure_rf_2,"\n \n \n")
+
+
+
+
+
+
+
+
+```
+
+
+
+
+#### xgboost
+
+It contains 2 models. one is pixels (sentinel 1) to pixels (sentinel 2), the other is 9 pixels (sentinel 1) to 1 pixels (sentinel 2). 
+```{r}
+library(xgboost)
+library(plyr)
+
+set.seed(1)
+
+#use cv find best iteration
+figure_ndvi_xgboost_cv1 <- xgb.cv(
+    data = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,1:2],
+    label = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,3],
+    nrounds = 1000,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05,
+    nfold=10
+  )
+
+
+#set the model
+figure_ndvi_xgboost_1 <- xgboost(
+    data = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,1:2],
+    label = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,3],
+    nrounds = figure_ndvi_xgboost_cv1 $best_iteration,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05
+  )
+
+
+
+# predict for the test set
+predict_figure_xgboost_1 <- predict(figure_ndvi_xgboost_1,as.matrix(drop_na(figure_test[,c("VV","VH","NDVI")])[,1:2]))
+# the 5 types score in test set
+MSE_figure_xgboost_1 <- MSE (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+R2_figure_xgboost_1 <- R2 (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+DS_figure_xgboost_1 <- DS (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+RPD_figure_xgboost_1 <- RPD (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+KGE_figure_xgboost_1 <- KGE (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+SSIM_figure_xgboost_1 <- SSIM (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+
+
+MSE_vector[5] <- MSE_figure_xgboost_1
+R2_vector[5] <- R2_figure_xgboost_1
+DS_vector[5] <- DS_figure_xgboost_1
+RPD_vector[5] <- RPD_figure_xgboost_1
+KGE_vector[5] <- KGE_figure_xgboost_1
+SSIM_vector[5] <- SSIM_figure_xgboost_1
+
+cat("\n \n \nMSE on the test set for figure_ndvi_xgboost_1",MSE_figure_xgboost_1)
+cat("\n R2 on the test set for figure_ndvi_xgboost_1",R2_figure_xgboost_1)
+cat("\n DS on the test set for figure_ndvi_xgboost_1",DS_figure_xgboost_1)
+cat("\n RPD on the test set for figure_ndvi_xgboost_1",RPD_figure_xgboost_1)
+cat("\n KGE on the test set for figure_ndvi_xgboost_1",KGE_figure_xgboost_1)
+cat("\n SSIM on the test set for figure_ndvi_xgboost_1",SSIM_figure_xgboost_1,"\n \n \n")
+
+
+# 9 pixels 
+
+
+
+
+set.seed(1)
+
+#use cv find best iteration
+figure_ndvi_xgboost_cv2 <- xgb.cv(
+    data = as.matrix(drop_na(figure_training[,column_18]))[index_2,-1],
+    label = as.matrix(drop_na(figure_training[,column_18]))[index_2,1],
+    nrounds = 1000,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05,
+    nfold=10
+  )
+
+
+
+#set the model
+figure_ndvi_xgboost_2 <- xgboost(
+    data = as.matrix(drop_na(figure_training[,column_18]))[index_2,-1],
+    label = as.matrix(drop_na(figure_training[,column_18]))[index_2,1],
+    nrounds = figure_ndvi_xgboost_cv2$best_iteration,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05
+  )
+
+
+
+
+
+
+# predict for the test set
+predict_figure_xgboost_2 <- predict(figure_ndvi_xgboost_2,as.matrix(drop_na(figure_test[,column_18])[,-1]))
+# the 5 types score in test set
+MSE_figure_xgboost_2 <- MSE (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+R2_figure_xgboost_2 <- R2 (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+DS_figure_xgboost_2 <- DS (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+RPD_figure_xgboost_2 <- RPD (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+KGE_figure_xgboost_2 <- KGE (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+SSIM_figure_xgboost_2 <- SSIM (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+
+
+MSE_vector[6] <- MSE_figure_xgboost_2
+R2_vector[6] <- R2_figure_xgboost_2 
+DS_vector[6] <- DS_figure_xgboost_2 
+RPD_vector[6] <- RPD_figure_xgboost_2
+KGE_vector[6] <- KGE_figure_xgboost_2
+SSIM_vector[6] <- SSIM_figure_xgboost_2
+
+cat("\n \n \nMSE on the test set for figure_ndvi_xgboost_2",MSE_figure_xgboost_2)
+cat("\n R2 on the test set for figure_ndvi_xgboost_2",R2_figure_xgboost_2)
+cat("\n DS on the test set for figure_ndvi_xgboost_2",DS_figure_xgboost_2)
+cat("\n RPD on the test set for figure_ndvi_xgboost_2",RPD_figure_xgboost_2)
+cat("\n KGE on the test set for figure_ndvi_xgboost_2",KGE_figure_xgboost_2)
+cat("\n SSIM on the test set for figure_ndvi_xgboost_2",SSIM_figure_xgboost_2,"\n \n \n")
+
+
+```
+
+
+
+
+
+
+#### plot the predict
+see the difference between the prediction and true values.
+
+```{r}
+
+# make a list
+model_list <- list(predict_figure_lm_1,predict_figure_lm_2,predict_figure_rf_1,predict_figure_rf_2,
+                   predict_figure_xgboost_1,predict_figure_xgboost_2)
+
+
+names(model_list) <- c("1","2","3","4","5","6")
+
+# find the lowest MSE 
+index_model_1 <- which.min(MSE_vector)
+# find the highest R2
+index_model_2 <-  which.max(R2_vector)
+# find the highest RPD
+index_model_3 <-  which.max(RPD_vector)
+# find the highest KGE
+index_model_4 <-  which.max(KGE_vector)
+# find the highest SSIM
+index_model_5 <- which.max(SSIM_vector)
+# find the lowest DS
+index_model_6 <-  which.min(DS_vector)
+
+# find the unique index
+index_model <- unique(c(index_model_1,index_model_2,index_model_3,index_model_4,index_model_5,index_model_6 ))
+
+
+# plot the whole figure
+figure_combine_set_1 <- rbind(figure_training,figure_test)
+
+whole_plot_region_1 <- plot(rasterFromXYZ(figure_combine_set_1[,c("x","y","NDVI")]),main="the whole plot")
+whole_plot_region_1 
+
+# plot the figure with clouds
+clouds_plot_region_1 <-plot(rasterFromXYZ(figure_training[,c("x","y","NDVI")]),main="the white part is artificial clouds")
+clouds_plot_region_1
+
+
+# plot the best performance models' predict 
+
+plot_list <- model_list[index_model]
+
+
+index_plot <-which(rowSums(is.na(figure_test[,column_18]))==0) 
+
+
+for (i in 1:length(index_model)){
+  plot_dataframe <- figure_test[,c("x","y","NDVI")]
+  plot_dataframe [index_plot,"NDVI"] <- plot_list[[i]]
+  plot_dataframe  <- rbind(figure_training[,c("x","y","NDVI")],plot_dataframe)
+  plot(rasterFromXYZ(plot_dataframe),main=paste0("this is model ",index_model[i]))
+}
+
+
+```
+
+
+
+
+#### residual plot on train set
+```{r}
+ plot(figure_ndvi_rf_2$predicted,
+              (drop_na(figure_training[,column_18])$NDVI[index_2] -figure_ndvi_rf_2$predicted),main="residual plot in the training data",
+              xlab="predictive values",ylab="residuals")
+
+```
+
+
+
+#### residual plot on test set
+```{r}
+ plot(predict_figure_rf_2,(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 ),
+                                    main="residual plot in the test data",
+              xlab="predictive values",ylab="residuals")
+
+```
+
+#### plot the absolute value of residual
+
+plot the histogram of NDVI whose absolute value of residual >=0.5, and the bar plot of the proportion.
+
+```{r}
+
+# plot the absolute value of residual by change back to raster
+
+raster_residual_region_1 <- plot(rasterFromXYZ(cbind(drop_na(figure_test[,c("x","y",column_18)])[,1:2],
+                         abs(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 ))),main="absolute residual plot")
+
+hist(abs(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 ))
+
+index_0.5 <- which(abs(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 )>=0.5)
+
+
+breaks <-  c(-1.0 ,-0.8 ,-0.6 ,-0.4 ,-0.2  ,0.0  ,0.2 , 0.4  ,0.6 , 0.8,  1.0)
+if( length(index_0.5)!=0){
+  hist_1 <- hist(drop_na(figure_test[,column_18])$NDVI[index_0.5],breaks=breaks,xlab="NDVI")
+  hist_2 <-  hist(drop_na(figure_test[,column_18])$NDVI,breaks=breaks)
+  prob <- hist_1$counts/hist_2$counts
+  barplot(prob,ylab="proportion",xlab="NDVI value from -1 to 1")
+}
+```
+
+
+
+
+#### histogram
+histogram of predicted values and the true values, dan their density plot.
+```{r}
+# plot the histogram
+hist_true_region_1 <-hist(drop_na(figure_test[,column_18])$NDVI ,main= "histogram of NDVI in the test data")
+hist(predict_figure_rf_2,xlim=c(-1,1),breaks=hist_true_region_1 $breaks,main= "histogram of NDVI (predictive values)")
+
+plot(density(predict_figure_rf_2),main= "density plot of NDVI",col="red",xlim=c(-1,1))
+lines(density(drop_na(figure_test[,column_18])$NDVI,) ,col="blue")
+```
+
+
+#### predict against the observed
+```{r}
+# plot the histogram
+plot(drop_na(figure_test[,column_18])$NDVI,predict_figure_rf_2,main= "predict against the observed")
+plot(predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI,main= "observed against the predict")
+```
+
+
+
+#### save the output 
+
+this is the evaluation metrics for region 1
+```{r}
+MSE_vector_regoin_1 <- MSE_vector
+R2_vector_regoin_1 <- R2_vector
+DS_vector_regoin_1 <- DS_vector
+RPD_vector_regoin_1 <- RPD_vector
+KGE_vector_regoin_1 <- KGE_vector
+SSIM_vector_regoin_1 <- SSIM_vector
+
+
+mu_y_1 <- mean(drop_na(figure_test[,column_18])$NDVI)
+sd_y_1 <- sd(drop_na(figure_test[,column_18])$NDVI)
+
+mu_y_hat_1 <- mean(predict_figure_rf_2)
+sd_y_hat_1 <- sd(predict_figure_rf_2)
+
+cov_y_y_hat_1 <- cov(predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI)
+```
+
+
+
+
+
+
+
+### region_2
+
+
+
+
+
+
+#### normalised 
+normalise the VV and VH
+```{r}
+
+
+row_num <- (row_num-2)*3
+col_num <- (col_num-2)*3
+
+# this is the region index
+index_region_2 <- sort(c(index_region_2_1,index_region_2_2))
+
+
+# we need add 4 sides of the region to make all pixels of the region have next to pixels.
+
+# add two row
+row_begin <- index_region_2 [((0:(col_num/3-1))*(row_num/3)+1)]-1
+row_end <- index_region_2 [(1:(col_num/3))*(row_num/3)]+1
+index_region_2 <-  sort(c(index_region_2,row_begin,row_end))
+
+# add two column
+col_begin <- index_region_2 [1:(row_num/3+2)] -row_num
+col_end <-index_region_2 [((row_num/3+2)*(col_num/3-1)+1):((row_num/3+2)*(col_num/3))] + row_num
+index_region_2 <-  sort(c(index_region_2,col_begin,col_end))
+
+
+# the whole data of region 1
+figure_combine_set_2 <- figure_combine_set[index_region_2,]
+plot(rasterFromXYZ(figure_combine_set_2[,c("x","y","NDVI")]))
+plot(figure_combine_set[c(col_begin,col_end,row_begin,row_end),1],
+     figure_combine_set[c(col_begin,col_end,row_begin,row_end),2])
+
+
+
+rm(list=c("figure_training","figure_test"))
+
+# combine the training and test for add column
+
+index_training <- which(index_region_2%in%index_region_2_2)
+
+index_test <- which(index_region_2%in%index_region_2_1)
+
+
+
+
+
+
+# normalize VV
+max_VV_2 <- max(figure_combine_set_2$VV[index_training],na.rm=TRUE)
+
+min_VV_2 <- min(figure_combine_set_2$VV[index_training],na.rm=TRUE)
+
+
+figure_combine_set_2$VV <- normalised(figure_combine_set_2$VV,max_VV_1,min_VV_1)
+
+# normalize VH
+
+max_VH_2 <- max(figure_combine_set_2$VH[index_training],na.rm=TRUE)
+
+min_VH_2 <- min (figure_combine_set_2$VH[index_training],na.rm=TRUE)
+
+
+figure_combine_set_2$VH <- normalised(figure_combine_set_2$VH,max_VH_2,min_VH_2)
+
+
+```
+
+
+
+#### Data Preprocessing
+
+I add 16 columns on both training data and test data. The add columns are the value of adjacent pixels (3x3).
+```{r}
+
+
+row_num <- row_num/3 +2
+col_num <- col_num/3 +2
+#  VV
+
+
+# this is right pixels
+figure_combine_set_2$VV_6 <- c(figure_combine_set_2$VV [(row_num+1):(row_num*col_num)],rep(NA,row_num))    
+
+# this is left pixels
+figure_combine_set_2$VV_4 <- c(rep(NA,row_num),figure_combine_set_2$VV [1:((row_num*col_num)-row_num)])  
+
+# this is up pixels
+
+figure_combine_set_2$VV_2 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_2$VV_2 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_2$VV [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is bottom pixels
+
+figure_combine_set_2$VV_8 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_2$VV_8 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_2$VV [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+
+# this is up left pixels
+
+figure_combine_set_2$VV_1 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VV_1 [(1+(i)*row_num):((i+1)*row_num -1)]  <-  figure_combine_set_2$VV [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is up right pixels
+
+figure_combine_set_2$VV_3 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VV_3 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_2$VV [(2+(i)*row_num): ((i+1)*row_num)]
+}
+
+# this is bottom left pixels
+
+figure_combine_set_2$VV_7 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VV_7 [(2+(i)*row_num): ((i+1)*row_num)] <-  figure_combine_set_2$VV [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+# this is bottom right pixels
+
+figure_combine_set_2$VV_9 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VV_9 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_2$VV [(1+(i)*row_num):((i+1)*row_num -1)] 
+}
+
+
+
+# VH
+
+
+# this is right pixels
+figure_combine_set_2$VH_6 <- c(figure_combine_set_2$VH [(row_num+1):(row_num*col_num)],rep(NA,row_num))    
+
+# this is left pixels
+figure_combine_set_2$VH_4 <- c(rep(NA,row_num),figure_combine_set_2$VH [1:((row_num*col_num)-row_num)])  
+
+# this is up pixels
+
+figure_combine_set_2$VH_2 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_2$VH_2 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_2$VH [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is bottom pixels
+
+figure_combine_set_2$VH_8 <- rep(NA,(row_num*col_num))
+for (i in 1:col_num) {
+  figure_combine_set_2$VH_8 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_2$VH [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+
+# this is up left pixels
+
+figure_combine_set_2$VH_1 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VH_1 [(1+(i)*row_num):((i+1)*row_num -1)]  <-  figure_combine_set_2$VH [(2+(i-1)*row_num): ((i)*row_num)]
+}
+
+
+# this is up right pixels
+
+figure_combine_set_2$VH_3 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VH_3 [(1+(i-1)*row_num):((i)*row_num -1)]  <-  figure_combine_set_2$VH [(2+(i)*row_num): ((i+1)*row_num)]
+}
+
+# this is bottom left pixels
+
+figure_combine_set_2$VH_7 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VH_7 [(2+(i)*row_num): ((i+1)*row_num)] <-  figure_combine_set_2$VH [(1+(i-1)*row_num):((i)*row_num -1)] 
+}
+
+
+# this is bottom right pixels
+
+figure_combine_set_2$VH_9 <- rep(NA,(row_num*col_num))
+for (i in 1:(col_num-1)) {
+  figure_combine_set_2$VH_9 [(2+(i-1)*row_num): ((i)*row_num)] <-  figure_combine_set_2$VH [(1+(i)*row_num):((i+1)*row_num -1)] 
+}
+
+
+
+
+figure_training <- figure_combine_set_2[index_training,]
+
+figure_test <- figure_combine_set_2[index_test,]
+
+```
+
+
+
+
+#### visualization 
+the scatter plots (NDVI vs VV, NDVI vs VH, and VH vs VV) and the histograms of VV, VH and NDVI in the training set 
+```{r}
+plot(figure_training$VV,figure_training$NDVI, xlab= "VV",ylab="NDVI",
+    main= "NDVI aginst VV for figure 1")
+plot(figure_training$VH,figure_training$NDVI, xlab= "VH",ylab="NDVI",
+    main= "NDVI aginst VH for figure 1")
+plot(figure_training$VV,figure_training$VH, xlab= "VV",ylab="VH",
+    main= "VH aginst VV for figure 1")
+
+
+hist(figure_training$VV)
+hist(figure_training$VH)
+hist(figure_training$NDVI)
+```
+
+
+
+
+#### choose 10000 for training
+choose 10000 pixels as training set because of the limitation of the computation. See the histgram of the training set and the histograms of the tes set
+```{r}
+
+set.seed(1)
+# sample 10000 for easy compute
+index_1 <- sample(1:dim(drop_na(figure_training[,c("VV","VH","NDVI")]))[1],1e4)
+
+# original
+
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[,c("VV")],main= "histogram of VV in the original data set",xlab="VV")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,c("VV")],main= "histogram of VV in random choose 10000 data set",xlab="VV")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[,c("VH")],main= "histogram of VH in the original data set",xlab="VH")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,c("VH")],main= "histogram of VH in random choose 10000 data set",xlab="VH")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[,c("NDVI")],main= "histogram of NDVI in the original data set",xlab="NDVI")
+hist(drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,c("NDVI")],main= "histogram of NDVI in random choose 10000 data set",xlab="NDVI")
+
+set.seed(1)
+
+# CREATE THE VECTOR indicate the 18 column and NDVI
+column_18 <-c("NDVI","VV","VH","VV_1","VH_1","VV_2","VH_2","VV_3","VH_3","VV_4","VH_4",
+              "VV_6","VH_6","VV_7","VH_7", "VV_8","VH_8","VV_9","VH_9")
+# sample 100000 for eay compute
+index_2 <- sample(1:dim(drop_na(figure_training[,column_18]))[1],1e4)
+
+hist(drop_na(figure_training[,column_18])[,c("VV")],main= "histogram of VV in the original data set",xlab="VV")
+hist(drop_na(figure_training[,column_18])[index_1,c("VV")],main= "histogram of VV in random choose 10000 data set",xlab="VV")
+hist(drop_na(figure_training[,column_18])[,c("VH")],main= "histogram of VH in the original data set",xlab="VH")
+hist(drop_na(figure_training[,column_18])[index_1,c("VH")],main= "histogram of VH in random choose 10000 data set",xlab="VH")
+hist(drop_na(figure_training[,column_18])[,c("NDVI")],main= "histogram of NDVI in the original data set",xlab="NDVI")
+hist(drop_na(figure_training[,column_18])[index_1,c("NDVI")],main= "histogram of NDVI in random choose 10000 data set",xlab="NDVI")
+
+```
+
+
+
+#### linear regression
+
+It contains 2 types models. one type is pixels (sentinel 1) to pixels (sentinel 2), the other is 9 pixels (sentinel 1) to 1 pixels (sentinel 2). 
+```{r}
+library(caret)
+
+ctrl <- trainControl(
+  method = "cv",
+  number = 10,
+)
+
+
+set.seed(1)
+# linear regression only VV and VH
+
+#set the model
+figure_ndvi_lm_1 <- train(
+  NDVI~VV+VH,
+  data =drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,],
+  method = 'lm',trControl = ctrl)
+figure_ndvi_lm_1
+
+
+# predict for the test set
+predict_figure_lm_1 <- predict(figure_ndvi_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")]))
+
+# the 5 types score in test set
+MSE_vector <- c()
+R2_vector <-  c()
+DS_vector <-  c()
+RPD_vector <- c()
+KGE_vector <- c()
+SSIM_vector <-c()
+  
+MSE_figure_lm_1 <- MSE (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+R2_figure_lm_1 <- R2 (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+DS_figure_lm_1 <- DS (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+RPD_figure_lm_1 <- RPD (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+KGE_figure_lm_1 <- KGE (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+SSIM_figure_lm_1 <- SSIM (predict_figure_lm_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+
+MSE_vector[1] <- MSE_figure_lm_1 
+R2_vector[1] <- R2_figure_lm_1 
+DS_vector[1] <- DS_figure_lm_1 
+RPD_vector[1] <- RPD_figure_lm_1 
+KGE_vector[1] <- KGE_figure_lm_1 
+SSIM_vector[1] <- SSIM_figure_lm_1 
+
+
+cat("\n \n \nMSE on the test set for figure_ndvi_lm_1",MSE_figure_lm_1)
+cat("\n R2 on the test set for figure_ndvi_lm_1",R2_figure_lm_1)
+cat("\n DS on the test set for figure_ndvi_lm_1",DS_figure_lm_1)
+cat("\n RPD on the test set for figure_ndvi_lm_1",RPD_figure_lm_1)
+cat("\n KGE on the test set for figure_ndvi_lm_1",KGE_figure_lm_1)
+cat("\n SSIM on the test set for figure_ndvi_lm_1",SSIM_figure_lm_1,"\n \n \n")
+
+
+
+
+# linear regression using 9 pixels
+
+
+
+# linear regression only VV, VH and its around pixels' VV and VH
+set.seed(1)
+
+# set the model
+figure_ndvi_lm_2 <- train(
+  NDVI~VV+VH+VV_1+VH_1+VV_2+VH_2+VV_3+VH_3+VV_4+VH_4+VV_6+VH_6+VV_7+VH_7+VV_8+VH_8+VV_9+VH_9,
+  data =drop_na(figure_training[,column_18])[index_2,],
+  method = 'lm')
+figure_ndvi_lm_2
+
+# predict at the test model
+
+predict_figure_lm_2 <- predict(figure_ndvi_lm_2,drop_na(figure_test[,column_18]))
+MSE_figure_lm_2 <- MSE (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+R2_figure_lm_2 <- R2 (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+DS_figure_lm_2 <- DS (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+RPD_figure_lm_2 <- RPD (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+KGE_figure_lm_2 <- KGE (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+SSIM_figure_lm_2 <- SSIM (predict_figure_lm_2,drop_na(figure_test[,column_18])$NDVI )
+
+MSE_vector[2] <- MSE_figure_lm_2 
+R2_vector[2] <- R2_figure_lm_2 
+DS_vector[2] <- DS_figure_lm_2 
+RPD_vector[2] <- RPD_figure_lm_2 
+KGE_vector[2] <- KGE_figure_lm_2 
+SSIM_vector[2] <- SSIM_figure_lm_2 
+
+
+cat("\n \n \nMSE on the test set for figure_ndvi_lm_2",MSE_figure_lm_2)
+cat("\n R2 on the test set for figure_ndvi_lm_2",R2_figure_lm_2)
+cat("\n DS on the test set for figure_ndvi_lm_2",DS_figure_lm_2)
+cat("\n RPD on the test set for figure_ndvi_lm_2",RPD_figure_lm_2)
+cat("\n KGE on the test set for figure_ndvi_lm_2",KGE_figure_lm_2)
+cat("\n SSIM on the test set for figure_ndvi_lm_2",SSIM_figure_lm_2,"\n \n \n")
+
+
+
+
+
+
+```
+
+
+#### random forest
+It contains 2 models. One is pixels (sentinel 1) to pixels (sentinel 2), the other is 9 pixels (sentinel 1) to 1 pixels (sentinel 2).
+```{r}
+library(randomForest)
+
+
+set.seed(1)
+# random forest only VV and VH
+
+#set the model
+figure_ndvi_rf_1 <- randomForest(
+  NDVI~VV+VH,
+  data =drop_na(figure_training[,c("VV","VH","NDVI")])[index_1,])
+figure_ndvi_rf_1
+
+
+
+
+# predict for the test set
+predict_figure_rf_1 <- predict(figure_ndvi_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")]))
+# the 5 types score in test set
+MSE_figure_rf_1 <- MSE (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+R2_figure_rf_1 <- R2 (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+DS_figure_rf_1 <- DS (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+RPD_figure_rf_1 <- RPD (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+KGE_figure_rf_1 <- KGE (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+SSIM_figure_rf_1 <- SSIM (predict_figure_rf_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+
+MSE_vector[3] <- MSE_figure_rf_1
+R2_vector[3] <- R2_figure_rf_1 
+DS_vector[3] <- DS_figure_rf_1 
+RPD_vector[3] <- RPD_figure_rf_1
+KGE_vector[3] <- KGE_figure_rf_1
+SSIM_vector[3] <- SSIM_figure_rf_1
+
+cat("\n \n \nMSE on the test set for figure_ndvi_rf_1",MSE_figure_rf_1)
+cat("\n R2 on the test set for figure_ndvi_rf_1",R2_figure_rf_1)
+cat("\n DS on the test set for figure_ndvi_rf_1",DS_figure_rf_1)
+cat("\n RPD on the test set for figure_ndvi_rf_1",RPD_figure_rf_1)
+cat("\n KGE on the test set for figure_ndvi_rf_1",KGE_figure_rf_1)
+cat("\n SSIM on the test set for figure_ndvi_rf_1",SSIM_figure_rf_1,"\n \n \n")
+
+
+
+
+
+
+
+
+
+
+# random forest using 9 pixels
+
+
+
+# random forest only VV, VH and its around pixels' VV and VH
+set.seed(1)
+
+# set the model
+figure_ndvi_rf_2 <- randomForest(
+  NDVI~VV+VH+VV_1+VH_1+VV_2+VH_2+VV_3+VH_3+VV_4+VH_4+VV_6+VH_6+VV_7+VH_7+VV_8+VH_8+VV_9+VH_9,
+  data =drop_na(figure_training[,column_18])[index_2,])
+figure_ndvi_rf_2
+
+# predict at the test model
+
+predict_figure_rf_2 <- predict(figure_ndvi_rf_2,drop_na(figure_test[,column_18]))
+MSE_figure_rf_2 <- MSE (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+R2_figure_rf_2 <- R2 (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+DS_figure_rf_2 <- DS (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+RPD_figure_rf_2 <- RPD (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+KGE_figure_rf_2 <- KGE (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+SSIM_figure_rf_2 <- SSIM (predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI )
+
+MSE_vector[4] <- MSE_figure_rf_2
+R2_vector[4] <- R2_figure_rf_2 
+DS_vector[4] <- DS_figure_rf_2 
+RPD_vector[4] <- RPD_figure_rf_2
+KGE_vector[4] <- KGE_figure_rf_2
+SSIM_vector[4] <- SSIM_figure_rf_2
+
+cat("\n \n \nMSE on the test set for figure_ndvi_rf_2",MSE_figure_rf_2)
+cat("\n R2 on the test set for figure_ndvi_rf_2",R2_figure_rf_2)
+cat("\n DS on the test set for figure_ndvi_rf_2",DS_figure_rf_2)
+cat("\n RPD on the test set for figure_ndvi_rf_2",RPD_figure_rf_2)
+cat("\n KGE on the test set for figure_ndvi_rf_2",KGE_figure_rf_2)
+cat("\n SSIM on the test set for figure_ndvi_rf_2",SSIM_figure_rf_2,"\n \n \n")
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+#### xgboost
+
+It contains 2 models. one is pixels (sentinel 1) to pixels (sentinel 2), the other is 9 pixels (sentinel 1) to 1 pixels (sentinel 2). 
+```{r}
+library(xgboost)
+library(plyr)
+
+set.seed(1)
+
+#use cv find best iteration
+figure_ndvi_xgboost_cv1 <- xgb.cv(
+    data = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,1:2],
+    label = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,3],
+    nrounds = 1000,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05,
+    nfold=10
+  )
+
+
+#set the model
+figure_ndvi_xgboost_1 <- xgboost(
+    data = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,1:2],
+    label = as.matrix(drop_na(figure_training[,c("VV","VH","NDVI")]))[index_1,3],
+    nrounds = figure_ndvi_xgboost_cv1 $best_iteration,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05
+  )
+
+
+
+# predict for the test set
+predict_figure_xgboost_1 <- predict(figure_ndvi_xgboost_1,as.matrix(drop_na(figure_test[,c("VV","VH","NDVI")])[,1:2]))
+# the 5 types score in test set
+MSE_figure_xgboost_1 <- MSE (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+R2_figure_xgboost_1 <- R2 (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+DS_figure_xgboost_1 <- DS (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+RPD_figure_xgboost_1 <- RPD (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+KGE_figure_xgboost_1 <- KGE (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+SSIM_figure_xgboost_1 <- SSIM (predict_figure_xgboost_1,drop_na(figure_test[,c("VV","VH","NDVI")])$NDVI )
+
+
+MSE_vector[5] <- MSE_figure_xgboost_1
+R2_vector[5] <- R2_figure_xgboost_1
+DS_vector[5] <- DS_figure_xgboost_1
+RPD_vector[5] <- RPD_figure_xgboost_1
+KGE_vector[5] <- KGE_figure_xgboost_1
+SSIM_vector[5] <- SSIM_figure_xgboost_1
+
+cat("\n \n \nMSE on the test set for figure_ndvi_xgboost_1",MSE_figure_xgboost_1)
+cat("\n R2 on the test set for figure_ndvi_xgboost_1",R2_figure_xgboost_1)
+cat("\n DS on the test set for figure_ndvi_xgboost_1",DS_figure_xgboost_1)
+cat("\n RPD on the test set for figure_ndvi_xgboost_1",RPD_figure_xgboost_1)
+cat("\n KGE on the test set for figure_ndvi_xgboost_1",KGE_figure_xgboost_1)
+cat("\n SSIM on the test set for figure_ndvi_xgboost_1",SSIM_figure_xgboost_1,"\n \n \n")
+
+
+# 9 pixels 
+
+
+
+
+set.seed(1)
+
+#use cv find best iteration
+figure_ndvi_xgboost_cv2 <- xgb.cv(
+    data = as.matrix(drop_na(figure_training[,column_18]))[index_2,-1],
+    label = as.matrix(drop_na(figure_training[,column_18]))[index_2,1],
+    nrounds = 1000,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05,
+    nfold=10
+  )
+
+
+
+#set the model
+figure_ndvi_xgboost_2 <- xgboost(
+    data = as.matrix(drop_na(figure_training[,column_18]))[index_2,-1],
+    label = as.matrix(drop_na(figure_training[,column_18]))[index_2,1],
+    nrounds = figure_ndvi_xgboost_cv2$best_iteration,
+    objective = "reg:squarederror",
+    early_stopping_rounds = 5,
+    max_depth = 6,
+    eta = .05
+  )
+
+
+
+
+
+
+# predict for the test set
+predict_figure_xgboost_2 <- predict(figure_ndvi_xgboost_2,as.matrix(drop_na(figure_test[,column_18])[,-1]))
+# the 5 types score in test set
+MSE_figure_xgboost_2 <- MSE (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+R2_figure_xgboost_2 <- R2 (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+DS_figure_xgboost_2 <- DS (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+RPD_figure_xgboost_2 <- RPD (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+KGE_figure_xgboost_2 <- KGE (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+SSIM_figure_xgboost_2 <- SSIM (predict_figure_xgboost_2,drop_na(figure_test[,column_18])$NDVI )
+
+
+MSE_vector[6] <- MSE_figure_xgboost_2
+R2_vector[6] <- R2_figure_xgboost_2 
+DS_vector[6] <- DS_figure_xgboost_2 
+RPD_vector[6] <- RPD_figure_xgboost_2
+KGE_vector[6] <- KGE_figure_xgboost_2
+SSIM_vector[6] <- SSIM_figure_xgboost_2
+
+cat("\n \n \nMSE on the test set for figure_ndvi_xgboost_2",MSE_figure_xgboost_2)
+cat("\n R2 on the test set for figure_ndvi_xgboost_2",R2_figure_xgboost_2)
+cat("\n DS on the test set for figure_ndvi_xgboost_2",DS_figure_xgboost_2)
+cat("\n RPD on the test set for figure_ndvi_xgboost_2",RPD_figure_xgboost_2)
+cat("\n KGE on the test set for figure_ndvi_xgboost_2",KGE_figure_xgboost_2)
+cat("\n SSIM on the test set for figure_ndvi_xgboost_2",SSIM_figure_xgboost_2,"\n \n \n")
+
+
+```
+
+
+
+
+
+
+#### plot the predict
+see the difference between the prediction and true values.
+```{r}
+
+# make a list
+model_list <- list(predict_figure_lm_1,predict_figure_lm_2,predict_figure_rf_1,predict_figure_rf_2,
+                   predict_figure_xgboost_1,predict_figure_xgboost_2)
+
+
+names(model_list) <- c("1","2","3","4","5","6")
+
+# find the lowest MSE 
+index_model_1 <- which.min(MSE_vector)
+# find the highest R2
+index_model_2 <-  which.max(R2_vector)
+# find the highest RPD
+index_model_3 <-  which.max(RPD_vector)
+# find the highest KGE
+index_model_4 <-  which.max(KGE_vector)
+# find the highest SSIM
+index_model_5 <- which.max(SSIM_vector)
+# find the lowest DS
+index_model_6 <-  which.min(DS_vector)
+
+# find the unique index
+index_model <- unique(c(index_model_1,index_model_2,index_model_3,index_model_4,index_model_5,index_model_6 ))
+
+
+# plot the whole figure
+figure_combine_set_2 <- rbind(figure_training,figure_test)
+
+whole_plot_region_2 <- plot(rasterFromXYZ(figure_combine_set_2[,c("x","y","NDVI")]),main="the whole plot")
+whole_plot_region_2 
+
+# plot the figure with clouds
+clouds_plot_region_2 <-plot(rasterFromXYZ(figure_training[,c("x","y","NDVI")]),main="the white part is artificial clouds")
+clouds_plot_region_2
+
+
+# plot the best performance models' predict 
+
+plot_list <- model_list[index_model]
+
+
+index_plot <-which(rowSums(is.na(figure_test[,column_18]))==0) 
+
+
+for (i in 1:length(index_model)){
+  plot_dataframe <- figure_test[,c("x","y","NDVI")]
+  plot_dataframe [index_plot,"NDVI"] <- plot_list[[i]]
+  plot_dataframe  <- rbind(figure_training[,c("x","y","NDVI")],plot_dataframe)
+  plot(rasterFromXYZ(plot_dataframe),main=paste0("this is model ",index_model[i]))
+}
+
+```
+
+
+
+
+#### residual plot on train set
+```{r}
+residual_plot_training_region_2 <- plot(figure_ndvi_rf_2$predicted,
+                        (drop_na(figure_training[,column_18])$NDVI[index_2] -figure_ndvi_rf_2$predicted),main="residual plot in the training data",
+              xlab="predictive values",ylab="residuals")
+
+residual_plot_training_region_2 
+```
+
+
+
+#### residual plot on test set
+```{r}
+ plot(predict_figure_rf_2,(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 ), main="residual plot in the test data",
+              xlab="predictive values",ylab="residuals")
+
+
+```
+
+
+#### plot the absolute value of residual
+
+plot the histogram of NDVI whose absolute value of residual >=0.5, and the bar plot of the proportion.
+```{r}
+
+# plot the absolute value of residual by change back to raster
+plot(rasterFromXYZ(cbind(drop_na(figure_test[,c("x","y",column_18)])[,1:2],
+                         abs(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 ))),main="absolute residual plot")
+
+
+hist(abs(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 ))
+
+index_0.5 <- which(abs(drop_na(figure_test[,column_18])$NDVI -predict_figure_rf_2 )>=0.5)
+
+if( length(index_0.5)!=0){
+  hist_1 <- hist(drop_na(figure_test[,column_18])$NDVI[index_0.5],breaks=breaks,xlab="NDVI",main="the histogram of NDVI whose absolute residual >=0.5")
+  hist_2 <-  hist(drop_na(figure_test[,column_18])$NDVI,breaks=breaks)
+  prob <- hist_1$counts/hist_2$counts
+  barplot(prob,ylab="proportion",xlab="NDVI value from -1 to 1")
+}
+
+```
+
+
+#### histogram
+
+histogram of predicted values and the true values, dan their density plot.
+```{r}
+# plot the histogram
+hist_true_region_2 <-hist(drop_na(figure_test[,column_18])$NDVI ,main= "histogram of NDVI in the test data")
+hist(predict_figure_rf_2,xlim=c(-1,1),breaks=hist_true_region_2 $breaks,main= "histogram of NDVI (predictive values)")
+
+
+plot(density(predict_figure_rf_2),main= "density plot of NDVI",col="red",xlim=c(-1,1))
+lines(density(drop_na(figure_test[,column_18])$NDVI,) ,col="blue")
+```
+
+#### predict against the observed
+```{r}
+# plot the histogram
+plot(drop_na(figure_test[,column_18])$NDVI,predict_figure_rf_2,main= "predict against the observed")
+plot(predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI,main= "observed against the predict")
+```
+
+
+
+
+#### save the output 
+
+this is the evaluation metrics for region 2
+```{r}
+MSE_vector_regoin_2 <- MSE_vector
+R2_vector_regoin_2 <- R2_vector
+DS_vector_regoin_2 <- DS_vector
+RPD_vector_regoin_2 <- RPD_vector
+KGE_vector_regoin_2 <- KGE_vector
+SSIM_vector_regoin_2 <- SSIM_vector
+
+mu_y_2 <- mean(drop_na(figure_test[,column_18])$NDVI)
+sd_y_2 <- sd(drop_na(figure_test[,column_18])$NDVI)
+
+mu_y_hat_2 <- mean(predict_figure_rf_2)
+sd_y_hat_2 <- sd(predict_figure_rf_2)
+
+cov_y_y_hat_2 <- cov(predict_figure_rf_2,drop_na(figure_test[,column_18])$NDVI)
+```
+
+
+### compare the metrics between region 1 and region 2
+```{r}
+
+# the MSE of mean value compare to the real value
+MSE_mean_1 <- MSE_vector_regoin_1/( 1 - R2_vector_regoin_1)
+MSE_mean_2 <- MSE_vector_regoin_2/( 1 - R2_vector_regoin_2)
+
+MSE_mean_1[1]
+MSE_mean_2[1]
+
+
+# mean of NDVI for region 1 of true value and the predicted value
+mu_y_1
+mu_y_hat_1
+
+# mean of NDVI for region 2 of true value and the predicted value
+mu_y_2
+mu_y_hat_2
+
+# variance and covariance of NDVI for region 1 of true value and the predicted value
+
+sd_y_1^2
+sd_y_hat_1^2
+cov_y_y_hat_1
+
+# variance and covariance of NDVI for region 1 of true value and the predicted value
+
+sd_y_2^2
+sd_y_hat_2^2
+cov_y_y_hat_2
+
+# the variance part of SSIM's formula for region 1
+
+sd_y_1^2+sd_y_hat_1^2
+2*cov_y_y_hat_1
+
+# the variance part of SSIM's formula for region 1
+
+
+sd_y_2^2+sd_y_hat_2^2
+2*cov_y_y_hat_2
+
+
+```
+
+
